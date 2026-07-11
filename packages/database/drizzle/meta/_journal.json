@@ -15,6 +15,13 @@
       "when": 1783491368101,
       "tag": "0001_flimsy_silver_fox",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783799287661,
+      "tag": "0002_green_shooting_star",
+      "breakpoints": true
     }
   ]
 }

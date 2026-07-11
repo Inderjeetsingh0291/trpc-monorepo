@@ -51,10 +51,10 @@ const data = {
       url: "/dashboard/forms",
       icon: IconClipboardText,
     },
-   
+
   ],
   navClouds: [
-   
+
   ],
   navSecondary: [
     {
@@ -62,10 +62,10 @@ const data = {
       url: "#",
       icon: IconSettings,
     },
-   
+
   ],
   documents: [
-    
+
   ],
 }
 
