@@ -49,15 +49,14 @@ export const authRouter = router({
     }
   }).input(getLoggedInUserInfoInputModel).output(getLoggedInUserInfoOutputModel)
     .query(async ({ ctx }) => {
-      const userToken = getAuthenticationCookie(ctx);
-      if (!userToken) throw new Error(`User is not logged in`)
+
 
       const {
         id,
         fullName,
         email,
         profileImageUrl
-      } = await userService.verifyAndDecodeUserToken(userToken)
+      } = await userService.verifyAndDecodeUserToken(ctx.user.id)
       
       return {
         id,
