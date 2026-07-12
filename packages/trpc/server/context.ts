@@ -20,7 +20,7 @@ export async function createContext({
     const ctx: TRPCContext = {
         createCookie: createCookieFactory(res),
         getCookie: getCookieFactory(req),
-        clearCookie: clearCookieFactory(res)
+        clearCookie: clearCookieFactory(res),
         user: undefined
     }
     return ctx
