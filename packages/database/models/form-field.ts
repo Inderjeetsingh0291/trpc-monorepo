@@ -33,10 +33,10 @@ export const fieldTypeEnum = pgEnum("field_type_enum", [
 export const formFieldsTable = pgTable("form_fields", {
     id: uuid("id").primaryKey().defaultRandom(),
 
-    label: varchar("label", { length: 55 }).notNull(),
-    labelKey: varchar("label_key", { length: 55 }).notNull(),
+    label: varchar("label", { length: 100 }).notNull(),
+    labelKey: varchar("label_key", { length: 100 }).notNull(),
 
-    placeholder: varchar("placeholder", { length: 55 }),
+    placeholder: varchar("placeholder", { length: 100 }),
     description: varchar("description", { length: 255 }),
 
     isRequired: boolean("is_required").default(false).notNull(),
