@@ -1,8 +1,9 @@
-import { router, authenticationPocedure } from "../../trpc";
+import { router, authenticationPocedure, publicProcedure } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 import { 
   createFormInputModel, createFormOutputModel, 
   listFormsInputModel, listFormsOutputModel,
+  getFormByIdInputModel, getFormByIdOutputModel,
   createFieldInputModel, createFieldOutputModel,
   updateFieldInputModel, updateFieldOutputModel,
   deleteFieldInputModel, deleteFieldOutputModel,
@@ -43,6 +44,17 @@ export const formRouter = router({
     const { forms } = await formService.listFormsByUserId({ userId: ctx.user.id });
 
     return { forms };
+  }),
+
+  getFormById: publicProcedure.meta({
+    openapi: {
+      method: "GET",
+      path: getPath('/getFormById'),
+      tags: TAGS,
+      protect: false
+    }
+  }).input(getFormByIdInputModel).output(getFormByIdOutputModel).query(async ({ input }) => {
+    return await formService.getFormById(input);
   }),
 
   // --- Form Field Procedures ---
@@ -86,23 +98,25 @@ export const formRouter = router({
     return await formFieldService.deleteField(input);
   }),
 
-  getField: authenticationPocedure.meta({
+ 
+
+  getField: publicProcedure.meta({ // this must be public 
     openapi: {
       method: "GET",
       path: getPath('/getField'),
       tags: ["Form Fields"],
-      protect: true
+      protect: false
     }
   }).input(getFieldByIdInputModel).output(getFieldByIdOutputModel).query(async ({ input }) => {
     return await formFieldService.getFieldById(input);
   }),
 
-  getFields: authenticationPocedure.meta({
+  getFields: publicProcedure.meta({
     openapi: {
       method: "GET",
       path: getPath('/getFields'),
       tags: ["Form Fields"],
-      protect: true
+      protect: false
     }
   }).input(getFieldsByFormIdInputModel).output(getFieldsByFormIdOutputModel).query(async ({ input }) => {
     return await formFieldService.getFieldsByFormId(input);

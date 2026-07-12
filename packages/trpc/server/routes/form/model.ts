@@ -21,7 +21,7 @@ export const listFormsOutputModel = z.object({
     }))
 })
 
-// --- Form Field Models ---
+// --- Shared Models ---
 
 const fieldTypeValues = [
     "text",
@@ -36,6 +36,37 @@ const fieldTypeValues = [
     "file",
     "image",
 ] as const
+
+const fieldOutputModel = z.object({
+    id: z.string().describe("Id of the field"),
+    label: z.string().describe("Display label"),
+    labelKey: z.string().describe("Label key"),
+    placeholder: z.string().nullable().describe("Placeholder"),
+    description: z.string().nullable().describe("Description"),
+    isRequired: z.boolean().describe("Is required"),
+    index: z.string().describe("Index"),
+    type: z.enum(fieldTypeValues).describe("Field type"),
+    formId: z.string().nullable().describe("Form ID"),
+    createdAt: z.coerce.date().nullable().describe("Creation timestamp"),
+})
+
+export const getFormByIdInputModel = z.object({
+    formId: z.string().uuid().describe("UUID of the form to retrieve"),
+})
+
+export const getFormByIdOutputModel = z.object({
+    form: z.object({
+        id: z.string().describe("Id of the form"),
+        title: z.string().describe("Title of the form"),
+        description: z.string().nullable().describe("Description of the form"),
+        isActive: z.boolean().nullable().describe("Whether the form is active"),
+        createdAt: z.coerce.date().nullable().describe("Creation timestamp"),
+        updatedAt: z.coerce.date().nullable().describe("Update timestamp"),
+        fields: z.array(fieldOutputModel).describe("Form fields")
+    })
+})
+
+// --- Form Field Models ---
 
 export const createFieldInputModel = z.object({
     label: z.string().min(1).max(100).describe("Display label for the field"),
@@ -77,19 +108,6 @@ export const deleteFieldOutputModel = z.object({
 
 export const getFieldByIdInputModel = z.object({
     fieldId: z.string().uuid().describe("UUID of the field to retrieve"),
-})
-
-const fieldOutputModel = z.object({
-    id: z.string().describe("Id of the field"),
-    label: z.string().describe("Display label"),
-    labelKey: z.string().describe("Label key"),
-    placeholder: z.string().nullable().describe("Placeholder"),
-    description: z.string().nullable().describe("Description"),
-    isRequired: z.boolean().describe("Is required"),
-    index: z.string().describe("Index"),
-    type: z.enum(fieldTypeValues).describe("Field type"),
-    formId: z.string().nullable().describe("Form ID"),
-    createdAt: z.coerce.date().nullable().describe("Creation timestamp"),
 })
 
 export const getFieldByIdOutputModel = z.object({
