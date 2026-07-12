@@ -1,3 +1,5 @@
+import { FormBuilder } from "./_components/form-builder"
+
 export default async function FormBuilderPage({
   params,
 }: {
@@ -14,11 +16,7 @@ export default async function FormBuilderPage({
         </p>
       </div>
 
-      <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-16 text-center">
-        <p className="text-sm text-muted-foreground">
-          Builder for form <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{id}</code>
-        </p>
-      </div>
+      <FormBuilder formId={id} />
     </div>
   )
 }
