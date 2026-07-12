@@ -14,7 +14,8 @@ export const authRouter = router({
     openapi: {
       method: "POST",
       path: getPath('/createUserwithEmailAndPassword'),
-      tags: TAGS
+      tags: TAGS,
+      protect: true
     }
   }).input(createUserwithEmailAndPasswordInputModel).output(createUserwithEmailAndPasswordOutputModel).mutation(async ({ input, ctx }) => {
     const { fullName, email, password } = input;
