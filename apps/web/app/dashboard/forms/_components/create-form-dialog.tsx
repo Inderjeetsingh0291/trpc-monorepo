@@ -52,42 +52,66 @@ export function CreateFormDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button id="create-form-button">
-          <PlusIcon />
+        <Button
+          id="create-form-button"
+          className="rounded-xl font-semibold text-white shadow-md transition-all hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+          style={{
+            background: "linear-gradient(135deg, oklch(0.62 0.19 48), oklch(0.7 0.2 60))",
+            border: "none",
+          }}
+        >
+          <PlusIcon className="mr-2 size-4" />
           Create Form
         </Button>
       </DialogTrigger>
 
-      <DialogContent>
+      <DialogContent className="rounded-2xl sm:max-w-md">
         <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>Create a new form</DialogTitle>
-            <DialogDescription>
-              Give your form a title and an optional description to get started.
-            </DialogDescription>
+          {/* Dialog header with saffron accent */}
+          <DialogHeader className="pb-2">
+            <div className="flex items-center gap-3 mb-1">
+              <div
+                className="flex size-9 items-center justify-center rounded-xl shadow"
+                style={{
+                  background: "linear-gradient(135deg, oklch(0.62 0.19 48), oklch(0.7 0.2 60))",
+                }}
+              >
+                <PlusIcon className="size-5 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-bold">Create a new form</DialogTitle>
+                <DialogDescription className="text-sm text-muted-foreground">
+                  Give your form a title and optional description.
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
 
-          <div className="flex flex-col gap-4 py-6">
+          <div className="flex flex-col gap-5 py-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="form-title">
+              <Label htmlFor="form-title" className="font-semibold text-foreground/80">
                 Title <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="form-title"
-                placeholder="e.g. Customer Feedback"
+                placeholder="e.g. Customer Feedback Survey"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={55}
                 autoFocus
                 disabled={isPending}
+                className="h-11 rounded-xl border-border/60 bg-background/80 transition-all focus:border-[oklch(0.62_0.19_48)] focus:ring-[oklch(0.62_0.19_48)/30%]"
               />
-              <p className="text-xs text-muted-foreground text-right">
+              <p className="text-xs text-muted-foreground/70 text-right">
                 {title.length}/55
               </p>
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="form-description">Description</Label>
+              <Label htmlFor="form-description" className="font-semibold text-foreground/80">
+                Description{" "}
+                <span className="text-muted-foreground font-normal">(optional)</span>
+              </Label>
               <Textarea
                 id="form-description"
                 placeholder="Briefly describe what this form is for..."
@@ -96,19 +120,21 @@ export function CreateFormDialog() {
                 maxLength={55}
                 rows={3}
                 disabled={isPending}
+                className="rounded-xl border-border/60 bg-background/80 resize-none transition-all focus:border-[oklch(0.62_0.19_48)] focus:ring-[oklch(0.62_0.19_48)/30%]"
               />
-              <p className="text-xs text-muted-foreground text-right">
+              <p className="text-xs text-muted-foreground/70 text-right">
                 {description.length}/55
               </p>
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => setOpen(false)}
               disabled={isPending}
+              className="rounded-xl"
             >
               Cancel
             </Button>
@@ -116,6 +142,12 @@ export function CreateFormDialog() {
               id="submit-create-form"
               type="submit"
               disabled={isPending || !title.trim()}
+              className="rounded-xl font-semibold text-white min-w-[110px]"
+              style={{
+                background: "linear-gradient(135deg, oklch(0.62 0.19 48), oklch(0.7 0.2 60))",
+                border: "none",
+                opacity: isPending || !title.trim() ? 0.7 : 1,
+              }}
             >
               {isPending ? (
                 <>

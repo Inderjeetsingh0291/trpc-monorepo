@@ -1,7 +1,9 @@
 "use client"
 
 import { useState } from "react"
+import { CheckCircle2Icon } from "lucide-react"
 import { useGetFormById } from "~/hooks/api/form"
+import { useSubmitForm } from "~/hooks/api/form-submission"
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
@@ -15,8 +17,9 @@ import { toast } from "sonner"
 
 export function PublicForm({ formId }: { formId: string }) {
   const { form, isLoading, isError, error } = useGetFormById(formId)
-  const [formData, setFormData] = useState<Record<string, any>>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { submitFormAsync, isPending: isSubmitting } = useSubmitForm()
+  const [formData, setFormData] = useState<Record<string, string>>({})
+  const [submitted, setSubmitted] = useState(false)
 
   if (isLoading) {
     return (
@@ -48,27 +51,53 @@ export function PublicForm({ formId }: { formId: string }) {
     )
   }
 
-  const handleFieldChange = (key: string, value: any) => {
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center py-12 px-4">
+        <Card className="max-w-md w-full shadow-lg text-center">
+          <CardContent className="pt-10 pb-10 flex flex-col items-center gap-4">
+            <div className="flex size-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+              <CheckCircle2Icon className="size-8 text-green-600 dark:text-green-400" />
+            </div>
+            <h2 className="text-2xl font-bold">Thank you!</h2>
+            <p className="text-muted-foreground">
+              Your response has been recorded successfully.
+            </p>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => {
+                setFormData({})
+                setSubmitted(false)
+              }}
+            >
+              Submit another response
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  const handleFieldChange = (key: string, value: string) => {
     setFormData(prev => ({ ...prev, [key]: value }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsSubmitting(true)
-    
+
+    // Build the values array matching the DB schema shape
+    const values = form.fields.map(field => ({
+      formFieldId: field.id,
+      value: formData[field.labelKey] ?? "",
+    }))
+
     try {
-      // Simulate submission delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      console.log("Submitting form data:", formData)
+      await submitFormAsync({ formId, values })
+      setSubmitted(true)
       toast.success("Form submitted successfully!")
-      
-      // Reset form
-      setFormData({})
-    } catch (err) {
-      toast.error("Failed to submit form.")
-    } finally {
-      setIsSubmitting(false)
+    } catch {
+      toast.error("Failed to submit form. Please try again.")
     }
   }
 
@@ -100,7 +129,6 @@ export function PublicForm({ formId }: { formId: string }) {
               <SelectValue placeholder={field.placeholder || "Select an option"} />
             </SelectTrigger>
             <SelectContent>
-              {/* Note: Option configuration needs to be added to db schema later, using dummies for now */}
               <SelectItem value="option1">Option 1</SelectItem>
               <SelectItem value="option2">Option 2</SelectItem>
             </SelectContent>
@@ -130,8 +158,8 @@ export function PublicForm({ formId }: { formId: string }) {
           <div className="flex items-center gap-2 mt-2">
             <Checkbox 
               id={field.labelKey}
-              checked={!!value}
-              onCheckedChange={(checked) => handleFieldChange(field.labelKey, checked)}
+              checked={value === "true"}
+              onCheckedChange={(checked) => handleFieldChange(field.labelKey, String(checked))}
               disabled={isSubmitting}
               required={field.isRequired}
             />

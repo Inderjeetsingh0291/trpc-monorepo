@@ -121,3 +121,36 @@ export const getFieldsByFormIdInputModel = z.object({
 export const getFieldsByFormIdOutputModel = z.object({
     fields: z.array(fieldOutputModel)
 })
+
+// --- Submission Models ---
+
+export const submitFormInputModel = z.object({
+    formId: z.string().uuid().describe("UUID of the form being submitted"),
+    values: z.array(z.object({
+        formFieldId: z.string().uuid().describe("UUID of the form field"),
+        value: z.string().describe("User-provided value"),
+    })).describe("Array of field answers"),
+})
+
+export const submitFormOutputModel = z.object({
+    submissionId: z.string().describe("Id of the created submission"),
+    createdAt: z.coerce.date().nullable().describe("Submission timestamp"),
+})
+
+export const listSubmissionsInputModel = z.object({
+    formId: z.string().uuid().describe("UUID of the form to list submissions for"),
+})
+
+const submissionValueModel = z.object({
+    formFieldId: z.string().describe("UUID of the form field"),
+    value: z.string().describe("User-provided value"),
+})
+
+export const listSubmissionsOutputModel = z.object({
+    submissions: z.array(z.object({
+        id: z.string().describe("Submission ID"),
+        formId: z.string().nullable().describe("Form ID"),
+        values: z.array(submissionValueModel).nullable().describe("Submitted values"),
+        createdAt: z.coerce.date().nullable().describe("Submission timestamp"),
+    }))
+})

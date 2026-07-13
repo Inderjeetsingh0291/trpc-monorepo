@@ -8,9 +8,11 @@ import {
   updateFieldInputModel, updateFieldOutputModel,
   deleteFieldInputModel, deleteFieldOutputModel,
   getFieldByIdInputModel, getFieldByIdOutputModel,
-  getFieldsByFormIdInputModel, getFieldsByFormIdOutputModel
+  getFieldsByFormIdInputModel, getFieldsByFormIdOutputModel,
+  submitFormInputModel, submitFormOutputModel,
+  listSubmissionsInputModel, listSubmissionsOutputModel
 } from "./model";
-import { formService, formFieldService } from "@repo/services";
+import { formService, formFieldService, formSubmissionService } from "@repo/services";
 
 const TAGS = ["Forms"];
 const getPath = generatePath("/form");
@@ -120,6 +122,30 @@ export const formRouter = router({
     }
   }).input(getFieldsByFormIdInputModel).output(getFieldsByFormIdOutputModel).query(async ({ input }) => {
     return await formFieldService.getFieldsByFormId(input);
+  }),
+
+  // --- Submission Procedures ---
+
+  submitForm: publicProcedure.meta({
+    openapi: {
+      method: "POST",
+      path: getPath('/submitForm'),
+      tags: ["Submissions"],
+      protect: false
+    }
+  }).input(submitFormInputModel).output(submitFormOutputModel).mutation(async ({ input }) => {
+    return await formSubmissionService.submitForm(input);
+  }),
+
+  listSubmissions: authenticationPocedure.meta({
+    openapi: {
+      method: "GET",
+      path: getPath('/listSubmissions'),
+      tags: ["Submissions"],
+      protect: true
+    }
+  }).input(listSubmissionsInputModel).output(listSubmissionsOutputModel).query(async ({ input }) => {
+    return await formSubmissionService.listSubmissionsByFormId(input);
   }),
 
 })
