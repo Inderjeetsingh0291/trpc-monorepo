@@ -77,7 +77,7 @@ export default function FormsPage() {
                   border: "1px solid oklch(0.62 0.19 48 / 30%)",
                 }}
               >
-                ਫਾਰਮਾਂ
+                Forms
               </span>
             </div>
             <h1

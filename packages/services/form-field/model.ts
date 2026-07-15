@@ -12,6 +12,8 @@ const fieldTypeValues = [
     "YES_NO",
     "file",
     "image",
+    "rating",
+    "date"
 ] as const
 
 // --- Create Field ---

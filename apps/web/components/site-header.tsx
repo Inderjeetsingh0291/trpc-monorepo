@@ -16,9 +16,9 @@ export function SiteHeader() {
         />
         {/* Breadcrumb / title with subtle Punjab accent */}
         <div className="flex items-center gap-2">
-          <h1 className="text-base font-semibold text-foreground/80 tracking-wide">
-            InderForms
-          </h1>
+          <span className="font-bold text-[oklch(0.18_0.05_40)] text-lg tracking-tight">
+            MakeForms
+          </span>
           <span
             className="hidden sm:inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest"
             style={{

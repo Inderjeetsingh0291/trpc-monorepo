@@ -1,135 +1,189 @@
-# Turborepo starter
+# Sawaalnama — ਸਵਾਲਨਾਮਾ
 
-This Turborepo starter is maintained by the Turborepo core team.
+> Build beautiful forms with the spirit of Punjab. Collect responses with pride and warmth.
 
-## Using this example
+A full-stack, type-safe, monorepo form management platform built with **Next.js 16**, **tRPC**, **Drizzle ORM**, **PostgreSQL**, and **Turborepo**.
 
-Run the following command:
+---
 
-```sh
-npx create-turbo@latest
-```
+## 🚀 Features
 
-## What's inside?
+| Feature | Status |
+|---------|--------|
+| Creator authentication (JWT cookie) | ✅ |
+| Create, edit, publish, delete forms | ✅ |
+| Dynamic field builder (10+ types) | ✅ |
+| Public & Unlisted visibility modes | ✅ |
+| Public Explore page | ✅ |
+| Form submission without login | ✅ |
+| QR Code sharing | ✅ |
+| Clone forms | ✅ |
+| Response analytics + bar chart | ✅ |
+| CSV export for responses | ✅ |
+| Email notifications via Resend | ✅ (optional) |
+| API documentation via Scalar | ✅ |
+| Punjab-themed design system | ✅ |
 
-This Turborepo includes the following packages/apps:
+---
 
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
+## 🏗️ Architecture
 
 ```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+trpc-monorepo/
+├── apps/
+│   ├── api/          → Express + tRPC + OpenAPI (port 8000)
+│   └── web/          → Next.js 16 frontend (port 3000)
+├── packages/
+│   ├── database/     → Drizzle ORM schema + migrations
+│   ├── services/     → Business logic layer
+│   ├── trpc/         → Shared tRPC router + types
+│   ├── logger/       → Structured logging
+│   └── typescript-config/ → Shared TS config
 ```
 
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+---
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
+## ⚡ Quick Start
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
+### Prerequisites
+- Node.js 18+
+- pnpm 9+
+- PostgreSQL 15+ (or Docker)
 
-### Develop
-
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
+### 1. Clone and Install
+```bash
+git clone <repo-url>
+cd trpc-monorepo
+pnpm install
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+### 2. Configure Environment
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
+Create `.env` in the **root** of the monorepo:
+```env
+DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5433/dev
+JWT_SECRET=your-secret-here
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
+# Optional — for Resend email notifications
+RESEND_API_KEY=re_xxxxxxxx
+FROM_EMAIL=your@domain.com
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
+### 3. Start PostgreSQL (Docker)
+```bash
+docker-compose up -d
 ```
 
-## Useful Links
+### 4. Migrate Database
+```bash
+pnpm db:migrate
+```
 
-Learn more about the power of Turborepo:
+### 5. Seed Demo Data
+```bash
+pnpm seed
+```
 
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+### 6. Start Development
+```bash
+pnpm dev
+```
+
+| Service | URL |
+|---------|-----|
+| Web App | http://localhost:3000 |
+| API Server | http://localhost:8000 |
+| API Docs (Scalar) | http://localhost:8000/docs |
+
+---
+
+## 🎭 Demo Credentials
+
+After running `pnpm seed`:
+
+| Field | Value |
+|-------|-------|
+| Email | `demo@sawaalnama.com` |
+| Password | `password123` |
+
+Or use the **"Login as Demo User"** button on the login page.
+
+---
+
+## 📡 API Documentation
+
+Full interactive API docs are available at:
+- **Via Web App**: http://localhost:3000/docs
+- **Direct (Scalar)**: http://localhost:8000/docs
+- **OpenAPI JSON**: http://localhost:8000/openapi.json
+
+### Key Endpoints
+
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/trpc/form/createForm` | POST | Create a new form |
+| `/trpc/form/listForms` | GET | List creator's forms |
+| `/trpc/form/getFormById` | GET | Get form + fields |
+| `/trpc/form/toggleFormStatus` | POST | Publish/unpublish |
+| `/trpc/form/submitForm` | POST | Submit response (public) |
+| `/trpc/form/listPublicForms` | GET | Public explore listing |
+| `/trpc/form/cloneForm` | POST | Clone a form |
+
+---
+
+## 🎨 Design System
+
+Uses a custom **Punjab Theme** with:
+- **Saffron**: `oklch(0.62 0.19 48)` — primary actions and highlights
+- **Green**: `oklch(0.5 0.14 145)` — success states and published status
+- Phulkari-inspired decorative dot patterns
+- Gurmukhi welcome text on login
+
+---
+
+## 🗄️ Database Schema
+
+| Table | Purpose |
+|-------|---------|
+| `users` | Authentication + profiles |
+| `forms` | Form metadata + visibility |
+| `form_fields` | Dynamic field definitions |
+| `form_submissions` | Collected responses (JSONB) |
+
+**Visibility Modes:**
+- `public` — Shown in the public explore gallery. Anyone can submit.
+- `unlisted` — Hidden from listings. Only accessible via direct link.
+
+---
+
+## 🔧 Available Commands
+
+```bash
+pnpm dev          # Start all services in development
+pnpm build        # Build all packages
+pnpm db:generate  # Generate Drizzle migration files
+pnpm db:migrate   # Apply migrations to database
+pnpm seed         # Seed demo data
+pnpm lint         # Run ESLint
+pnpm check-types  # Run TypeScript type checking
+```
+
+---
+
+## 📦 Field Types Supported
+
+`text`, `number`, `email`, `phone`, `textarea`, `select`, `radio`, `checkbox`, `YES_NO`, `file`, `image`, `rating`, `date`
+
+---
+
+## 🌍 Visibility Checks
+
+| Form State | Public Listing | Direct Link | Submit |
+|------------|----------------|-------------|--------|
+| Draft (isActive=false) | ❌ | ❌ | ❌ |
+| Published + Unlisted | ❌ | ✅ | ✅ |
+| Published + Public | ✅ | ✅ | ✅ |
+
+---
+
+Built with ❤️ in the spirit of Punjab.

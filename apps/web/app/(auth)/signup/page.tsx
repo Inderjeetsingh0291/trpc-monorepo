@@ -50,19 +50,9 @@ export default function SignupPage() {
               className="text-4xl font-bold tracking-tight"
               style={{ color: "oklch(0.95 0.015 75)" }}
             >
-              InderForms
+              MakeForms
             </h2>
-            <p
-              className="text-2xl font-bold"
-              style={{
-                background: "linear-gradient(135deg, oklch(0.78 0.16 55), oklch(0.68 0.13 145))",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}
-            >
-              ਪੰਜਾਬ ਦਾ ਮਾਣ
-            </p>
+
             <p className="text-sm max-w-xs leading-relaxed" style={{ color: "oklch(0.65 0.03 60)" }}>
               Build beautiful forms inspired by the rich culture of Punjab. Collect responses with pride and warmth.
             </p>
@@ -115,7 +105,7 @@ export default function SignupPage() {
               <img src="/punjab-pic.png" alt="Punjab Logo" className="w-full h-full object-contain" />
             </div>
             <span className="text-sm font-bold" style={{ color: "oklch(0.18 0.04 30)" }}>
-              Inder Forms
+              MakeForms
             </span>
           </a>
         </div>

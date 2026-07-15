@@ -1,8 +1,12 @@
 import { z } from "zod"
 
+const visibilityValues = ["public", "unlisted"] as const
+
 export const createFormInputModel = z.object({
     title: z.string().max(55).describe("Title of the form"),
     description: z.string().max(55).optional().describe("Description of the form"),
+    expiresAt: z.coerce.date().optional().nullable().describe("Optional expiry date"),
+    maxResponses: z.number().int().optional().nullable().describe("Optional maximum response limit"),
 })
 
 export const createFormOutputModel = z.object({
@@ -16,7 +20,10 @@ export const listFormsOutputModel = z.object({
         id: z.string().describe("Id of the form"),
         title: z.string().describe("Title of the form"),
         description: z.string().nullable().describe("Description of the form"),
-        isActive: z.boolean().nullable().describe("Whether the form is active"),
+        isActive: z.boolean().nullable().describe("Whether the form is published"),
+        visibility: z.enum(visibilityValues).describe("Visibility mode: public or unlisted"),
+        expiresAt: z.coerce.date().nullable().optional(),
+        maxResponses: z.number().int().nullable().optional(),
         createdAt: z.coerce.date().nullable().describe("Creation timestamp"),
     }))
 })
@@ -35,6 +42,8 @@ const fieldTypeValues = [
     "YES_NO",
     "file",
     "image",
+    "rating",
+    "date"
 ] as const
 
 const fieldOutputModel = z.object({
@@ -59,7 +68,10 @@ export const getFormByIdOutputModel = z.object({
         id: z.string().describe("Id of the form"),
         title: z.string().describe("Title of the form"),
         description: z.string().nullable().describe("Description of the form"),
-        isActive: z.boolean().nullable().describe("Whether the form is active"),
+        isActive: z.boolean().nullable().describe("Whether the form is published"),
+        visibility: z.enum(visibilityValues).describe("Visibility mode"),
+        expiresAt: z.coerce.date().nullable().optional(),
+        maxResponses: z.number().int().nullable().optional(),
         createdAt: z.coerce.date().nullable().describe("Creation timestamp"),
         updatedAt: z.coerce.date().nullable().describe("Update timestamp"),
         fields: z.array(fieldOutputModel).describe("Form fields")
@@ -154,3 +166,40 @@ export const listSubmissionsOutputModel = z.object({
         createdAt: z.coerce.date().nullable().describe("Submission timestamp"),
     }))
 })
+
+export const deleteFormInputModel = z.object({
+    formId: z.string().uuid().describe("UUID of the form to delete"),
+})
+
+export const deleteFormOutputModel = z.object({
+    success: z.boolean().describe("Whether the deletion was successful"),
+    formId: z.string().describe("Id of the deleted form"),
+})
+
+// --- Publish / Visibility Models ---
+
+export const toggleFormStatusInputModel = z.object({
+    formId: z.string().uuid().describe("UUID of the form to publish/unpublish"),
+    isActive: z.boolean().describe("True = publish, False = unpublish"),
+    visibility: z.enum(visibilityValues).optional().describe("Set visibility when publishing"),
+})
+
+export const toggleFormStatusOutputModel = z.object({
+    formId: z.string().describe("Id of the updated form"),
+    isActive: z.boolean().nullable().describe("New active state"),
+    visibility: z.enum(visibilityValues).describe("New visibility"),
+})
+
+export const listPublicFormsInputModel = z.void().describe("No input required")
+
+export const listPublicFormsOutputModel = z.object({
+    forms: z.array(z.object({
+        id: z.string().describe("Form id"),
+        title: z.string().describe("Form title"),
+        description: z.string().nullable().describe("Form description"),
+        isActive: z.boolean().nullable().describe("Is active"),
+        visibility: z.enum(visibilityValues).describe("Visibility"),
+        createdAt: z.coerce.date().nullable().describe("Created at"),
+    }))
+})
+

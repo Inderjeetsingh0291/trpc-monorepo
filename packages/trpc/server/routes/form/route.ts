@@ -1,5 +1,8 @@
+import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, authenticationPocedure, publicProcedure } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
+import { checkRateLimit } from "../../utils/rate-limit";
 import { 
   createFormInputModel, createFormOutputModel, 
   listFormsInputModel, listFormsOutputModel,
@@ -10,7 +13,10 @@ import {
   getFieldByIdInputModel, getFieldByIdOutputModel,
   getFieldsByFormIdInputModel, getFieldsByFormIdOutputModel,
   submitFormInputModel, submitFormOutputModel,
-  listSubmissionsInputModel, listSubmissionsOutputModel
+  listSubmissionsInputModel, listSubmissionsOutputModel,
+  deleteFormInputModel, deleteFormOutputModel,
+  toggleFormStatusInputModel, toggleFormStatusOutputModel,
+  listPublicFormsInputModel, listPublicFormsOutputModel,
 } from "./model";
 import { formService, formFieldService, formSubmissionService } from "@repo/services";
 
@@ -28,8 +34,8 @@ export const formRouter = router({
       protect: true
     }
   }).input(createFormInputModel).output(createFormOutputModel).mutation(async ({ input, ctx }) => {
-    const { title, description } = input;
-    const { formId } = await formService.createForm({ title, description, createdBy: ctx.user.id });
+    const { title, description, expiresAt, maxResponses } = input;
+    const { formId } = await formService.createForm({ title, description, createdBy: ctx.user.id, expiresAt, maxResponses });
 
     return { formId };
   }),
@@ -100,8 +106,6 @@ export const formRouter = router({
     return await formFieldService.deleteField(input);
   }),
 
- 
-
   getField: publicProcedure.meta({ // this must be public 
     openapi: {
       method: "GET",
@@ -133,7 +137,16 @@ export const formRouter = router({
       tags: ["Submissions"],
       protect: false
     }
-  }).input(submitFormInputModel).output(submitFormOutputModel).mutation(async ({ input }) => {
+  }).input(submitFormInputModel).output(submitFormOutputModel).mutation(async ({ input, ctx }) => {
+    // Rate limit: 10 submissions per IP per minute
+    const ip = ctx.ip ?? "unknown"
+    const allowed = checkRateLimit(`submit:${ip}`, { limit: 10, windowMs: 60_000 })
+    if (!allowed) {
+      throw new TRPCError({
+        code: "TOO_MANY_REQUESTS",
+        message: "Too many submissions. Please wait a moment before trying again.",
+      })
+    }
     return await formSubmissionService.submitForm(input);
   }),
 
@@ -148,4 +161,61 @@ export const formRouter = router({
     return await formSubmissionService.listSubmissionsByFormId(input);
   }),
 
+  deleteForm: authenticationPocedure.meta({
+    openapi: {
+      method: "DELETE",
+      path: getPath('/deleteForm'),
+      tags: TAGS,
+      protect: true
+    }
+  }).input(deleteFormInputModel).output(deleteFormOutputModel).mutation(async ({ input, ctx }) => {
+    const { formId } = input;
+    const { deletedFormId } = await formService.deleteForm({ formId, userId: ctx.user.id });
+    return { success: true, formId: deletedFormId };
+  }),
+
+  // --- Publish / Visibility Procedures ---
+
+  toggleFormStatus: authenticationPocedure.meta({
+    openapi: {
+      method: "POST",
+      path: getPath('/toggleFormStatus'),
+      tags: TAGS,
+      protect: true
+    }
+  }).input(toggleFormStatusInputModel).output(toggleFormStatusOutputModel).mutation(async ({ input, ctx }) => {
+    const result = await formService.toggleFormStatus({
+      formId: input.formId,
+      userId: ctx.user.id,
+      isActive: input.isActive,
+      visibility: input.visibility,
+    });
+    return result;
+  }),
+
+  listPublicForms: publicProcedure.meta({
+    openapi: {
+      method: "GET",
+      path: getPath('/listPublicForms'),
+      tags: TAGS,
+      protect: false
+    }
+  }).input(listPublicFormsInputModel).output(listPublicFormsOutputModel).query(async () => {
+    return await formService.listPublicForms({});
+  }),
+
+  // --- Clone Form ---
+
+  cloneForm: authenticationPocedure.meta({
+    openapi: {
+      method: "POST",
+      path: getPath('/cloneForm'),
+      tags: TAGS,
+      protect: true
+    }
+  }).input(z.object({ formId: z.string().uuid() })).output(createFormOutputModel).mutation(async ({ input, ctx }) => {
+    return await formService.cloneForm({ formId: input.formId, userId: ctx.user.id });
+  }),
+
 })
+

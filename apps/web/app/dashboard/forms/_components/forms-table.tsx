@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { FileTextIcon, PencilIcon, Share2Icon, ExternalLinkIcon, CopyIcon, PlusIcon } from "lucide-react"
+import { FileTextIcon, PencilIcon, Share2Icon, ExternalLinkIcon, CopyIcon, PlusIcon, Trash2Icon, EyeIcon, EyeOffIcon, GlobeIcon, CopyPlusIcon } from "lucide-react"
 import { toast } from "sonner"
 import { QRCodeSVG } from "qrcode.react"
 
@@ -25,12 +25,54 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog"
-import { useListForms } from "~/hooks/api/form"
+import { useListForms, useDeleteForm, useToggleFormStatus, useCloneForm } from "~/hooks/api/form"
 
 export function FormsTable() {
   const { forms, isLoading, isError, error } = useListForms()
+  const { deleteFormAsync, isPending: isDeleting } = useDeleteForm()
+  const { toggleFormStatusAsync, isPending: isToggling } = useToggleFormStatus()
+  const { cloneFormAsync, isPending: isCloning } = useCloneForm()
   const [shareFormId, setShareFormId] = useState<string | null>(null)
+  const [deleteFormId, setDeleteFormId] = useState<string | null>(null)
+  const [publishFormId, setPublishFormId] = useState<string | null>(null)
   const [shareUrl, setShareUrl] = useState("")
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteFormId) return
+
+    try {
+      await deleteFormAsync({ formId: deleteFormId })
+      toast.success("Form deleted successfully!")
+      setDeleteFormId(null)
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to delete form.")
+    }
+  }
+
+  const handlePublishToggle = async (formId: string, currentlyActive: boolean | null, currentVisibility: string) => {
+    const nextActive = !currentlyActive
+    // When publishing, keep existing visibility; when unpublishing just flip isActive
+    try {
+      await toggleFormStatusAsync({
+        formId,
+        isActive: nextActive,
+        ...(nextActive ? { visibility: currentVisibility as "public" | "unlisted" } : {}),
+      })
+      toast.success(nextActive ? "Form published!" : "Form unpublished.")
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to update form status.")
+    }
+  }
+
+  const handleSetVisibility = async (formId: string, visibility: "public" | "unlisted") => {
+    try {
+      await toggleFormStatusAsync({ formId, isActive: true, visibility })
+      setPublishFormId(null)
+      toast.success(`Form set to ${visibility === "public" ? "Public" : "Unlisted"}.`)
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to update visibility.")
+    }
+  }
 
   useEffect(() => {
     if (shareFormId && typeof window !== "undefined") {
@@ -122,6 +164,7 @@ export function FormsTable() {
               <TableHead className="font-bold text-foreground/80 py-4">Title</TableHead>
               <TableHead className="font-bold text-foreground/80">Description</TableHead>
               <TableHead className="font-bold text-foreground/80">Status</TableHead>
+              <TableHead className="font-bold text-foreground/80">Visibility</TableHead>
               <TableHead className="font-bold text-foreground/80">Created</TableHead>
               <TableHead className="text-right font-bold text-foreground/80">Actions</TableHead>
             </TableRow>
@@ -149,12 +192,28 @@ export function FormsTable() {
                   <span
                     className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                       form.isActive
-                        ? "text-emerald-700 bg-emerald-50 border border-emerald-200"
+                        ? "text-[oklch(0.5_0.14_145)] bg-[oklch(0.5_0.14_145)/10%] border border-[oklch(0.5_0.14_145)/25%]"
                         : "text-gray-500 bg-gray-100 border border-gray-200"
                     }`}
                   >
-                    <span className={`size-1.5 rounded-full ${form.isActive ? "bg-emerald-500" : "bg-gray-400"}`} />
-                    {form.isActive ? "Active" : "Inactive"}
+                    <span className={`size-1.5 rounded-full ${form.isActive ? "bg-[oklch(0.5_0.14_145)]" : "bg-gray-400"}`} />
+                    {form.isActive ? "Published" : "Draft"}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold cursor-pointer transition-colors ${
+                      form.visibility === "public"
+                        ? "text-[oklch(0.62_0.19_48)] bg-[oklch(0.62_0.19_48)/10%] border border-[oklch(0.62_0.19_48)/25%] hover:bg-[oklch(0.62_0.19_48)/15%]"
+                        : "text-gray-600 bg-gray-100 border border-gray-200 hover:bg-gray-200"
+                    }`}
+                    onClick={() => form.isActive && setPublishFormId(form.id)}
+                    title={form.isActive ? "Click to change visibility" : "Publish form first to set visibility"}
+                  >
+                    {form.visibility === "public"
+                      ? <><GlobeIcon className="size-3" /> Public</>
+                      : <><EyeOffIcon className="size-3" /> Unlisted</>
+                    }
                   </span>
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">
@@ -168,11 +227,28 @@ export function FormsTable() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
+                    {/* Publish / Unpublish Toggle */}
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => handlePublishToggle(form.id, form.isActive, form.visibility)}
+                      disabled={isToggling}
+                      className={`rounded-lg ${
+                        form.isActive
+                          ? "text-[oklch(0.5_0.14_145)] hover:text-[oklch(0.5_0.14_145)] hover:bg-[oklch(0.5_0.14_145)/10%]"
+                          : "text-muted-foreground hover:text-[oklch(0.5_0.14_145)] hover:bg-[oklch(0.5_0.14_145)/10%]"
+                      }`}
+                      title={form.isActive ? "Unpublish Form" : "Publish Form"}
+                    >
+                      {form.isActive ? <EyeIcon className="size-4" /> : <EyeOffIcon className="size-4" />}
+                      <span className="sr-only">{form.isActive ? "Unpublish" : "Publish"} {form.title}</span>
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon-sm"
                       onClick={() => setShareFormId(form.id)}
                       className="rounded-lg text-muted-foreground hover:text-[oklch(0.55_0.16_50)] hover:bg-[oklch(0.62_0.19_48)/10%]"
+                      title="Share Form"
                     >
                       <Share2Icon className="size-4" />
                       <span className="sr-only">Share {form.title}</span>
@@ -182,6 +258,19 @@ export function FormsTable() {
                       size="icon-sm"
                       asChild
                       className="rounded-lg text-muted-foreground hover:text-[oklch(0.55_0.16_50)] hover:bg-[oklch(0.62_0.19_48)/10%]"
+                      title="View Submissions"
+                    >
+                      <Link href={`/dashboard/forms/${form.id}/submissions`}>
+                        <FileTextIcon className="size-4" />
+                        <span className="sr-only">Submissions {form.title}</span>
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      asChild
+                      className="rounded-lg text-muted-foreground hover:text-[oklch(0.55_0.16_50)] hover:bg-[oklch(0.62_0.19_48)/10%]"
+                      title="Preview Form"
                     >
                       <Link href={`/form/${form.id}`} target="_blank">
                         <ExternalLinkIcon className="size-4" />
@@ -193,12 +282,44 @@ export function FormsTable() {
                       size="icon-sm"
                       asChild
                       className="rounded-lg text-muted-foreground hover:text-[oklch(0.55_0.16_50)] hover:bg-[oklch(0.62_0.19_48)/10%]"
+                      title="Edit Form"
                     >
                       <Link href={`/dashboard/forms/${form.id}`}>
                         <PencilIcon className="size-4" />
                         <span className="sr-only">Edit {form.title}</span>
                       </Link>
                     </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => setDeleteFormId(form.id)}
+                      className="rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      title="Delete Form"
+                    >
+                      <Trash2Icon className="size-4" />
+                      <span className="sr-only">Delete {form.title}</span>
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={async () => {
+                        try {
+                          await cloneFormAsync({ formId: form.id })
+                          toast.success(`"${form.title}" cloned as draft!`)
+                        } catch (err: any) {
+                          toast.error(err?.message ?? "Failed to clone form.")
+                        }
+                      }}
+                      disabled={isCloning}
+                      className="rounded-lg text-muted-foreground hover:text-[oklch(0.62_0.19_48)] hover:bg-[oklch(0.62_0.19_48)/10%]"
+                      title="Clone Form"
+                    >
+                      <CopyPlusIcon className="size-4" />
+                      <span className="sr-only">Clone {form.title}</span>
+                    </Button>
+
                   </div>
                 </TableCell>
               </TableRow>
@@ -251,6 +372,82 @@ export function FormsTable() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!deleteFormId} onOpenChange={(open) => !open && !isDeleting && setDeleteFormId(null)}>
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-destructive">Delete Form</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Are you sure you want to delete this form? This will permanently delete the form, all of its fields, and all collected submission data. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 justify-end pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteFormId(null)}
+              disabled={isDeleting}
+              className="rounded-xl"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="rounded-xl"
+            >
+              {isDeleting ? "Deleting..." : "Delete Form"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Visibility Picker Dialog */}
+      <Dialog open={!!publishFormId} onOpenChange={(open) => !open && !isToggling && setPublishFormId(null)}>
+        <DialogContent className="sm:max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold">Set Form Visibility</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Choose how this form appears to respondents.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 py-2">
+            <button
+              onClick={() => publishFormId && handleSetVisibility(publishFormId, "public")}
+              disabled={isToggling}
+              className="flex items-start gap-3 rounded-xl border p-4 text-left transition-colors hover:bg-[oklch(0.62_0.19_48)/5%] hover:border-[oklch(0.62_0.19_48)/40%] disabled:opacity-60"
+              style={{ border: "1px solid oklch(0.88 0.025 75)" }}
+            >
+              <GlobeIcon className="mt-0.5 size-5 shrink-0 text-[oklch(0.62_0.19_48)]" />
+              <div>
+                <p className="font-semibold text-sm text-foreground">Public</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Shown in explore pages and public galleries. Anyone can open and submit.
+                </p>
+              </div>
+            </button>
+            <button
+              onClick={() => publishFormId && handleSetVisibility(publishFormId, "unlisted")}
+              disabled={isToggling}
+              className="flex items-start gap-3 rounded-xl border p-4 text-left transition-colors hover:bg-gray-50 hover:border-gray-300 disabled:opacity-60"
+              style={{ border: "1px solid oklch(0.88 0.025 75)" }}
+            >
+              <EyeOffIcon className="mt-0.5 size-5 shrink-0 text-gray-500" />
+              <div>
+                <p className="font-semibold text-sm text-foreground">Unlisted</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Hidden from public listings. Only people with the direct link can access it.
+                </p>
+              </div>
+            </button>
+          </div>
+          <div className="flex justify-end pt-2">
+            <Button variant="outline" className="rounded-xl" onClick={() => setPublishFormId(null)} disabled={isToggling}>
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
@@ -274,6 +471,7 @@ function FormsTableSkeleton() {
             <TableHead className="font-bold text-foreground/80 py-4">Title</TableHead>
             <TableHead className="font-bold text-foreground/80">Description</TableHead>
             <TableHead className="font-bold text-foreground/80">Status</TableHead>
+            <TableHead className="font-bold text-foreground/80">Visibility</TableHead>
             <TableHead className="font-bold text-foreground/80">Created</TableHead>
             <TableHead className="text-right font-bold text-foreground/80">Actions</TableHead>
           </TableRow>
@@ -283,6 +481,7 @@ function FormsTableSkeleton() {
             <TableRow key={i} style={{ borderBottom: "1px solid oklch(0.88 0.025 75)" }}>
               <TableCell className="py-4"><Skeleton className="h-4 w-32" /></TableCell>
               <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+              <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
               <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
               <TableCell><Skeleton className="h-4 w-24" /></TableCell>
               <TableCell className="text-right"><Skeleton className="ml-auto h-8 w-8 rounded-lg" /></TableCell>

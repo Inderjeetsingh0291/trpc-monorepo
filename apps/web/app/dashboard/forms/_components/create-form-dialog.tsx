@@ -24,6 +24,8 @@ export function CreateFormDialog() {
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
+  const [maxResponses, setMaxResponses] = useState("")
+  const [expiresAt, setExpiresAt] = useState("")
 
   const { createFormAsync, isPending } = useCreateForm()
 
@@ -39,10 +41,14 @@ export function CreateFormDialog() {
       await createFormAsync({
         title: title.trim(),
         description: description.trim() || undefined,
+        maxResponses: maxResponses ? parseInt(maxResponses, 10) : undefined,
+        expiresAt: expiresAt ? new Date(expiresAt) : undefined,
       })
       toast.success("Form created successfully!")
       setTitle("")
       setDescription("")
+      setMaxResponses("")
+      setExpiresAt("")
       setOpen(false)
     } catch {
       toast.error("Failed to create form. Please try again.")
@@ -125,6 +131,38 @@ export function CreateFormDialog() {
               <p className="text-xs text-muted-foreground/70 text-right">
                 {description.length}/55
               </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="form-max-responses" className="font-semibold text-foreground/80">
+                  Response Limit <span className="text-muted-foreground font-normal">(optional)</span>
+                </Label>
+                <Input
+                  id="form-max-responses"
+                  type="number"
+                  min={1}
+                  placeholder="e.g. 100"
+                  value={maxResponses}
+                  onChange={(e) => setMaxResponses(e.target.value)}
+                  disabled={isPending}
+                  className="h-11 rounded-xl border-border/60 bg-background/80 transition-all focus:border-[oklch(0.62_0.19_48)] focus:ring-[oklch(0.62_0.19_48)/30%]"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="form-expires-at" className="font-semibold text-foreground/80">
+                  Expiry Date <span className="text-muted-foreground font-normal">(optional)</span>
+                </Label>
+                <Input
+                  id="form-expires-at"
+                  type="date"
+                  value={expiresAt}
+                  onChange={(e) => setExpiresAt(e.target.value)}
+                  disabled={isPending}
+                  className="h-11 rounded-xl border-border/60 bg-background/80 transition-all focus:border-[oklch(0.62_0.19_48)] focus:ring-[oklch(0.62_0.19_48)/30%]"
+                />
+              </div>
             </div>
           </div>
 

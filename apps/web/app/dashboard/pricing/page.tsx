@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 
 const CONTENT = {
-  headline: "Simple pricing",
+  headline: "Best pricing",
   subheadline: "Start for free, upgrade when you need more.",
   plans: [
     {
@@ -12,7 +12,7 @@ const CONTENT = {
       period: "forever",
       description: "Everything you need to get started with screen recording.",
       features: [
-        "Unlimited local recordings",
+        "10 local recordings",
         "Basic editing tools",
         "Share via link",
         "macOS & Windows apps",

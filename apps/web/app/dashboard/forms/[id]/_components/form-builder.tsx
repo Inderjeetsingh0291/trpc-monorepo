@@ -1,496 +1,200 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { PlusIcon, Trash2Icon, Share2Icon, CopyIcon, ExternalLinkIcon, PencilIcon } from "lucide-react"
-import { toast } from "sonner"
-import { QRCodeSVG } from "qrcode.react"
+import { useState } from "react"
+import { trpc } from "~/trpc/client"
+import { BuilderHeader } from "~/components/builder/header"
+import { BuilderToolbar } from "~/components/builder/toolbar"
+import { BuilderInsertPanel } from "~/components/builder/insert-panel"
+import { BuilderInspector } from "~/components/builder/inspector"
+import { FormSettingsPanel } from "~/components/builder/form-settings-panel"
+import { ViewToggle, useBuilderView } from "~/components/builder/view-toggle"
+import { FlowCanvas } from "~/components/builder/Flow-view/flow-canvas"
+import { SortableFieldList } from "~/components/builder/sortable-field-list"
+import { useUndoRedo } from "~/components/builder/use-undo-redo"
+import { PreviewModal } from "~/components/builder/preview-modal"
 
-import { useGetFields, useCreateField, useDeleteField, useUpdateField } from "~/hooks/api/form-field"
-import { Button } from "~/components/ui/button"
-import { Input } from "~/components/ui/input"
-import { Label } from "~/components/ui/label"
-import { Spinner } from "~/components/ui/spinner"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card"
-import { Badge } from "~/components/ui/badge"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "~/components/ui/dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select"
-import { Switch } from "~/components/ui/switch"
-import { Textarea } from "~/components/ui/textarea"
-
-const fieldTypes = [
-  "text", "number", "email", "phone", "textarea", 
-  "select", "radio", "checkbox", "YES_NO", "file", "image"
-] as const
-
-type FieldType = typeof fieldTypes[number]
+// Field types not yet supported by the backend
+const UNSUPPORTED_TYPES = ["welcome", "logic"]
 
 export function FormBuilder({ formId }: { formId: string }) {
-  const { fields, isLoading, isError, error } = useGetFields(formId)
-  const { deleteFieldAsync, isPending: isDeleting } = useDeleteField()
-  const { updateFieldAsync, isPending: isUpdating } = useUpdateField()
-
-  const [open, setOpen] = useState(false)
-  const [shareOpen, setShareOpen] = useState(false)
-  const [shareUrl, setShareUrl] = useState("")
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setShareUrl(`${window.location.origin}/form/${formId}`)
+  const [view, setView] = useBuilderView()
+  const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null)
+  const [autoSave, setAutoSave] = useState(true)
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
+  
+  const { data: formResp } = trpc.form.getFormById.useQuery({ formId })
+  const { data: fieldsResp } = trpc.form.getFields.useQuery({ formId })
+  
+  const form = formResp?.form
+  const fields = fieldsResp?.fields
+  
+  const utils = trpc.useUtils()
+  const createField = trpc.form.createField.useMutation({
+    onSuccess: () => utils.form.getFields.invalidate(),
+  })
+  const deleteField = trpc.form.deleteField.useMutation({
+    onSuccess: () => utils.form.getFields.invalidate(),
+  })
+  
+  const handleAddField = (fieldType: string) => {
+    if (UNSUPPORTED_TYPES.includes(fieldType)) {
+      alert(`"${fieldType}" blocks are coming soon!`)
+      return
     }
-  }, [formId])
+    const newIndex = fields ? (fields.length + 1).toFixed(2) : "1.00"
+    createField.mutate({
+      formId,
+      label: `New ${fieldType.replace(/_/g, " ")}`,
+      type: fieldType as any,
+      index: newIndex,
+      isRequired: false,
+    })
+  }
 
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl)
-      toast.success("Link copied to clipboard!")
-    } catch {
-      toast.error("Failed to copy link.")
-    }
+  const handleDeleteField = (fieldId: string) => {
+    deleteField.mutate({ fieldId })
+    if (selectedFieldId === fieldId) setSelectedFieldId(null)
+  }
+
+  const handleSelectField = (fieldId: string | null) => {
+    setSelectedFieldId(fieldId)
   }
   
-  // New field state
-  const [label, setLabel] = useState("")
-  const [placeholder, setPlaceholder] = useState("")
-  const [description, setDescription] = useState("")
-  const [type, setType] = useState<FieldType>("text")
-  const [isRequired, setIsRequired] = useState(false)
-
-  // Edit field state
-  const [editFieldId, setEditFieldId] = useState<string | null>(null)
-  const [editLabel, setEditLabel] = useState("")
-  const [editPlaceholder, setEditPlaceholder] = useState("")
-  const [editDescription, setEditDescription] = useState("")
-  const [editType, setEditType] = useState<FieldType>("text")
-  const [editIsRequired, setEditIsRequired] = useState(false)
-
-  const { createFieldAsync, isPending: isCreating } = useCreateField()
-
-  const openEditDialog = (field: NonNullable<typeof fields>[number]) => {
-    setEditFieldId(field.id)
-    setEditLabel(field.label)
-    setEditPlaceholder(field.placeholder || "")
-    setEditDescription(field.description || "")
-    setEditType(field.type as FieldType)
-    setEditIsRequired(field.isRequired)
-  }
-
-  const handleUpdateField = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!editLabel.trim() || !editFieldId) {
-      toast.error("Label is required")
-      return
-    }
-
-    try {
-      await updateFieldAsync({
-        fieldId: editFieldId,
-        label: editLabel.trim(),
-        placeholder: editPlaceholder.trim() || undefined,
-        description: editDescription.trim() || undefined,
-        type: editType,
-        isRequired: editIsRequired,
-      })
-
-      toast.success("Field updated successfully!")
-      setEditFieldId(null)
-    } catch {
-      toast.error("Failed to update field.")
-    }
-  }
-
-  const handleCreateField = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!label.trim()) {
-      toast.error("Label is required")
-      return
-    }
-
-    try {
-      // Calculate next index: just use fields length + 1 as string for now
-      // A more robust implementation would properly calculate fractional indices
-      const nextIndex = (fields.length + 1).toFixed(2)
-
-      await createFieldAsync({
-        formId,
-        label: label.trim(),
-        placeholder: placeholder.trim() || undefined,
-        description: description.trim() || undefined,
-        type,
-        isRequired,
-        index: nextIndex
-      })
-
-      toast.success("Field added successfully!")
-      setLabel("")
-      setPlaceholder("")
-      setDescription("")
-      setType("text")
-      setIsRequired(false)
-      setOpen(false)
-    } catch {
-      toast.error("Failed to create field.")
-    }
-  }
-
-  const handleDeleteField = async (fieldId: string) => {
-    if (!confirm("Are you sure you want to delete this field?")) return
-
-    try {
-      await deleteFieldAsync({ fieldId })
-      toast.success("Field deleted")
-    } catch {
-      toast.error("Failed to delete field.")
-    }
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center p-12">
-        <Spinner className="size-8" />
-      </div>
-    )
-  }
-
-  if (isError) {
-    return (
-      <div className="rounded-lg border border-destructive p-8 text-center text-destructive">
-        Failed to load form fields: {error?.message}
-      </div>
-    )
-  }
-
+  const { undo, redo, canUndo, canRedo } = useUndoRedo()
+  
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Form Fields</h2>
+    <div className="fixed inset-0 z-[100] bg-background flex flex-col overflow-hidden font-sans text-foreground">
+      <BuilderHeader 
+        formTitle={form?.title}
+        onPreview={() => setIsPreviewOpen(true)}
+        autoSave={autoSave}
+        onToggleAutoSave={() => setAutoSave(!autoSave)}
+      />
+      
+      <div className="flex-1 flex overflow-hidden mt-16">
+        {/* Left narrow toolbar: undo/redo/preview icons */}
+        <BuilderToolbar 
+          view={view}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={undo}
+          onRedo={redo}
+          onPreview={() => setIsPreviewOpen(true)}
+        />
         
-        <div className="flex gap-2">
-          <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Share2Icon className="mr-2 size-4" />
-                Share
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Share Form</DialogTitle>
-                <DialogDescription>
-                  Anyone with this link can submit responses to your form.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex flex-col items-center gap-6 py-6">
-                <div className="rounded-lg border bg-white p-4 shadow-sm">
-                  <QRCodeSVG value={shareUrl} size={180} />
-                </div>
-                <div className="flex w-full items-center space-x-2">
-                  <Input readOnly value={shareUrl} className="flex-1" />
-                  <Button size="icon" onClick={copyToClipboard} variant="secondary">
-                    <CopyIcon className="size-4" />
-                  </Button>
-                  <Button size="icon" variant="secondary" onClick={() => window.open(shareUrl, "_blank")}>
-                    <ExternalLinkIcon className="size-4" />
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <PlusIcon className="mr-2 size-4" />
-                Add Field
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-            <form onSubmit={handleCreateField}>
-              <DialogHeader>
-                <DialogTitle>Add New Field</DialogTitle>
-                <DialogDescription>
-                  Configure a new field for this form.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="flex flex-col gap-4 py-4">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="field-label">Label *</Label>
-                  <Input 
-                    id="field-label" 
-                    value={label} 
-                    onChange={(e) => setLabel(e.target.value)}
-                    placeholder="e.g. First Name"
-                    maxLength={100}
-                    autoFocus
-                    disabled={isCreating}
-                  />
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="field-type">Type *</Label>
-                  <Select 
-                    value={type} 
-                    onValueChange={(val) => setType(val as FieldType)}
-                    disabled={isCreating}
-                  >
-                    <SelectTrigger id="field-type">
-                      <SelectValue placeholder="Select a field type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {fieldTypes.map(t => (
-                        <SelectItem key={t} value={t}>
-                          {t.toUpperCase()}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="field-placeholder">Placeholder</Label>
-                  <Input 
-                    id="field-placeholder" 
-                    value={placeholder} 
-                    onChange={(e) => setPlaceholder(e.target.value)}
-                    placeholder="e.g. Enter your first name"
-                    maxLength={100}
-                    disabled={isCreating}
-                  />
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="field-description">Description</Label>
-                  <Textarea 
-                    id="field-description" 
-                    value={description} 
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Helper text for this field"
-                    maxLength={255}
-                    disabled={isCreating}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between rounded-lg border p-3">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="field-required">Required Field</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Must the user fill out this field?
-                    </p>
-                  </div>
-                  <Switch 
-                    id="field-required"
-                    checked={isRequired}
-                    onCheckedChange={setIsRequired}
-                    disabled={isCreating}
-                  />
-                </div>
-              </div>
-
-              <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setOpen(false)}
-                  disabled={isCreating}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={!label.trim() || isCreating}
-                >
-                  {isCreating ? <><Spinner className="mr-2" /> Adding...</> : "Add Field"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-        </div>
-      </div>
-
-      {fields.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-12 text-center">
-          <p className="font-medium">No fields yet</p>
-          <p className="text-sm text-muted-foreground">
-            Click "Add Field" to start building your form.
-          </p>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {fields.map((field, idx) => (
-            <Card key={field.id} className="relative group">
-              <CardHeader className="p-4 flex flex-row items-start justify-between space-y-0">
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      {idx + 1}.
-                    </span>
-                    <CardTitle className="text-base">{field.label}</CardTitle>
-                    {field.isRequired && (
-                      <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">
-                        Required
-                      </Badge>
-                    )}
-                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px] uppercase">
-                      {field.type}
-                    </Badge>
-                  </div>
-                  <CardDescription className="text-xs font-mono ml-6">
-                    Key: {field.labelKey}
-                  </CardDescription>
-                  {field.description && (
-                    <p className="text-sm text-muted-foreground ml-6 mt-1">
-                      {field.description}
-                    </p>
+        {/* Insert panel: changes label between "Insert Blocks" (form) and "Add Field" (canvas) */}
+        <BuilderInsertPanel onAddBlock={handleAddField} view={view} />
+        
+        {/* Main canvas area */}
+        <main className="flex-1 relative flex flex-col bg-slate-50 overflow-hidden">
+          {/* View toggle — overlaid top-left of the canvas */}
+          <div className="absolute top-3 left-3 z-40">
+            <ViewToggle value={view} onChange={setView} />
+          </div>
+          
+          <div className="flex-1 overflow-hidden relative">
+            {view === "form" ? (
+              /* ── Form (list) view ── */
+              <div className="absolute inset-0 overflow-y-auto">
+                <div className="pt-20 pb-20 px-8 max-w-3xl mx-auto min-h-full">
+                  {fields && fields.length > 0 ? (
+                    <SortableFieldList 
+                      fields={fields as any}
+                      formId={formId}
+                      selectedFieldId={selectedFieldId}
+                      onSelectField={handleSelectField}
+                      onDeleteField={handleDeleteField}
+                    />
+                  ) : fields !== undefined ? (
+                    /* Empty state */
+                    <div className="flex flex-col items-center justify-center h-64 text-center">
+                      <div className="w-16 h-16 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center mb-4">
+                        <span className="material-symbols-outlined text-orange-400 text-3xl">add_box</span>
+                      </div>
+                      <p className="text-sm font-medium text-slate-700 mb-1">No fields yet</p>
+                      <p className="text-xs text-slate-400" style={{ fontFamily: "var(--font-geist-mono)" }}>
+                        Click a block on the left to add your first field
+                      </p>
+                    </div>
+                  ) : (
+                    /* Loading */
+                    <div className="flex justify-center mt-20">
+                      <span className="text-[12px] text-muted-foreground" style={{ fontFamily: "var(--font-geist-mono)" }}>
+                        Loading fields...
+                      </span>
+                    </div>
                   )}
                 </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button 
-                    variant="ghost" 
-                    size="icon-sm"
-                    onClick={() => openEditDialog(field)}
-                    disabled={isDeleting}
-                  >
-                    <PencilIcon className="size-4" />
-                    <span className="sr-only">Edit Field</span>
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon-sm"
-                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    onClick={() => handleDeleteField(field.id)}
-                    disabled={isDeleting}
-                  >
-                    <Trash2Icon className="size-4" />
-                    <span className="sr-only">Delete Field</span>
-                  </Button>
-                </div>
-              </CardHeader>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Edit Field Dialog */}
-      <Dialog open={!!editFieldId} onOpenChange={(open) => !open && setEditFieldId(null)}>
-        <DialogContent className="sm:max-w-md">
-          <form onSubmit={handleUpdateField}>
-            <DialogHeader>
-              <DialogTitle>Edit Field</DialogTitle>
-              <DialogDescription>
-                Make changes to this form field.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="flex flex-col gap-4 py-4">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="edit-field-label">Label *</Label>
-                <Input 
-                  id="edit-field-label" 
-                  value={editLabel} 
-                  onChange={(e) => setEditLabel(e.target.value)}
-                  placeholder="e.g. First Name"
-                  maxLength={100}
-                  autoFocus
-                  disabled={isUpdating}
-                />
               </div>
-
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="edit-field-type">Type *</Label>
-                <Select 
-                  value={editType} 
-                  onValueChange={(val) => setEditType(val as FieldType)}
-                  disabled={isUpdating}
+            ) : (
+              /* ── Canvas (flow) view ── */
+              <FlowCanvas
+                fields={fields as any}
+                formTitle={form?.title}
+                formId={formId}
+                onAddField={handleAddField}
+                onDeleteField={handleDeleteField}
+                onSelectField={handleSelectField}
+                selectedFieldId={selectedFieldId}
+              />
+            )}
+          </div>
+        </main>
+        
+        {/* Right panel: Inspector (when field selected) OR Form Settings */}
+        <div className="w-[260px] h-full bg-background border-l border-border flex flex-col z-30 shrink-0">
+          {selectedFieldId ? (
+            /* Inspector panel with a close button */
+            <div className="flex flex-col h-full">
+              <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px] text-orange-500">tune</span>
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-foreground" style={{ fontFamily: "var(--font-geist-mono)" }}>
+                    Inspector
+                  </span>
+                </div>
+                <button
+                  onClick={() => setSelectedFieldId(null)}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  title="Close inspector"
                 >
-                  <SelectTrigger id="edit-field-type">
-                    <SelectValue placeholder="Select a field type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {fieldTypes.map(t => (
-                      <SelectItem key={t} value={t}>
-                        {t.toUpperCase()}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <span className="material-symbols-outlined text-[16px]">close</span>
+                </button>
               </div>
-
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="edit-field-placeholder">Placeholder</Label>
-                <Input 
-                  id="edit-field-placeholder" 
-                  value={editPlaceholder} 
-                  onChange={(e) => setEditPlaceholder(e.target.value)}
-                  placeholder="e.g. Enter your first name"
-                  maxLength={100}
-                  disabled={isUpdating}
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="edit-field-description">Description</Label>
-                <Textarea 
-                  id="edit-field-description" 
-                  value={editDescription} 
-                  onChange={(e) => setEditDescription(e.target.value)}
-                  placeholder="Helper text for this field"
-                  maxLength={255}
-                  disabled={isUpdating}
-                />
-              </div>
-
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <div className="space-y-0.5">
-                  <Label htmlFor="edit-field-required">Required Field</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Must the user fill out this field?
-                  </p>
-                </div>
-                <Switch 
-                  id="edit-field-required"
-                  checked={editIsRequired}
-                  onCheckedChange={setEditIsRequired}
-                  disabled={isUpdating}
+              <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden">
+                <BuilderInspector
+                  fieldId={selectedFieldId!}
+                  formId={formId}
+                  onDelete={(id) => {
+                    handleDeleteField(id)
+                    setSelectedFieldId(null)
+                  }}
                 />
               </div>
             </div>
+          ) : (
+            /* Form settings panel */
+            <div className="flex flex-col h-full">
+              <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+                <span className="material-symbols-outlined text-[16px] text-orange-500">settings</span>
+                <span className="text-[11px] font-bold uppercase tracking-widest text-foreground" style={{ fontFamily: "var(--font-geist-mono)" }}>
+                  Form Settings
+                </span>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 [&::-webkit-scrollbar]:hidden">
+                <FormSettingsPanel formId={formId} />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
-            <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setEditFieldId(null)}
-                disabled={isUpdating}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={!editLabel.trim() || isUpdating}
-              >
-                {isUpdating ? <><Spinner className="mr-2" /> Saving...</> : "Save Changes"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <PreviewModal
+        open={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        formTitle={form?.title}
+        fields={fields as any}
+      />
     </div>
   )
 }

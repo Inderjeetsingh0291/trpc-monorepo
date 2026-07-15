@@ -47,10 +47,10 @@ export function SignupForm({
             <img src="/punjab-pic.png" alt="Punjab Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            ਖਾਤਾ ਬਣਾਓ
+            Make Account
           </h1>
-          <p className="text-sm text-muted-foreground text-balance">
-            Create your InderForms account and start building
+          <p className="text-sm text-muted-foreground">
+            Create your MakeForms account and start building
           </p>
         </div>
 
@@ -140,7 +140,7 @@ export function SignupForm({
         {/* Phulkari decorative footer */}
         <div className="flex items-center justify-center gap-2 opacity-40 pt-2">
           <div className="h-px w-8 bg-gradient-to-r from-transparent to-[oklch(0.62_0.19_48)]" />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">ਇੰਦਰ ਫਾਰਮਜ਼</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">MakeForms</span>
           <div className="h-px w-8 bg-gradient-to-l from-transparent to-[oklch(0.62_0.19_48)]" />
         </div>
       </FieldGroup>

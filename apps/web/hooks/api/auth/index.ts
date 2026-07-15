@@ -80,3 +80,14 @@ export const useUser = () => {
         status
     }
 }
+
+export const useSignOut = () => {
+    const utils = trpc.useUtils();
+    const { mutateAsync: signOutAsync, isPending } = trpc.auth.signOut.useMutation({
+        onSuccess: async () => {
+            await utils.auth.getLoggedInUserInfo.invalidate();
+        }
+    });
+
+    return { signOutAsync, isPending }
+}

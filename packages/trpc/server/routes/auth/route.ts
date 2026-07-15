@@ -1,8 +1,9 @@
-import { publicProcedure, router } from "../../trpc";
+import { z } from "zod";
+import { publicProcedure, authenticationPocedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 import { createUserwithEmailAndPasswordInputModel, createUserwithEmailAndPasswordOutputModel, signInUserwithEmailAndPasswordInputModel, signInUserwithEmailAndPasswordOutputModel, getLoggedInUserInfoInputModel, getLoggedInUserInfoOutputModel } from "./model";
 import { userService } from "@repo/services";
-import { setAuthenticationCookie, getAuthenticationCookie } from "../../utils/cookie";
+import { setAuthenticationCookie, getAuthenticationCookie, clearAuthenticationCookie } from "../../utils/cookie";
 
 const TAGS = ["Authentication"];
 const getPath = generatePath("/authentication");
@@ -42,22 +43,19 @@ export const authRouter = router({
     return { id };
   }),
 
-  getLoggedInUserInfo: publicProcedure.meta({
+  getLoggedInUserInfo: authenticationPocedure.meta({
     openapi: {
       method: "GET",
       path: getPath('/getLoggedInUserInfo'),
       tags: TAGS
     }
-  }).input(getLoggedInUserInfoInputModel).output(getLoggedInUserInfoOutputModel)
-    .query(async ({ ctx }) => {
-
-
+  }).input(getLoggedInUserInfoInputModel).output(getLoggedInUserInfoOutputModel).query(async ({ ctx }) => {
       const {
         id,
         fullName,
         email,
         profileImageUrl
-      } = await userService.verifyAndDecodeUserToken(ctx.user.id)
+      } = await userService.getUserInfoById(ctx.user.id)
       
       return {
         id,
@@ -65,15 +63,17 @@ export const authRouter = router({
         email,
         profileImageUrl
       }
-    })
+  }),
 
-
-
-
-
-
-
-
-
+  signOut: publicProcedure.meta({
+    openapi: {
+      method: "POST",
+      path: getPath('/signOut'),
+      tags: TAGS
+    }
+  }).input(z.void()).output(z.object({ success: z.boolean() })).mutation(async ({ ctx }) => {
+    clearAuthenticationCookie(ctx)
+    return { success: true }
+  }),
 
 });

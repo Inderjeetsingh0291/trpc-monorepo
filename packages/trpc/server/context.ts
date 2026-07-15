@@ -11,18 +11,26 @@ export interface TRPCContext {
     clearCookie: ReturnType<typeof clearCookieFactory>
 
     user?: TRPCCtxUser
+    ip?: string
 }
 
 export async function createContext({
     req, res
 }: CreateExpressContextOptions
 ): Promise<TRPCContext> {
+    const ip =
+        (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
+        req.socket.remoteAddress ||
+        "unknown"
+
     const ctx: TRPCContext = {
         createCookie: createCookieFactory(res),
         getCookie: getCookieFactory(req),
         clearCookie: clearCookieFactory(res),
-        user: undefined
+        user: undefined,
+        ip,
     }
     return ctx
 }
 export type Context = Awaited<ReturnType<typeof createContext>>;
+

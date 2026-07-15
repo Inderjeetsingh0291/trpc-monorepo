@@ -58,7 +58,12 @@ const data = {
       title: "Pricing",
       url: "/dashboard/pricing",
       icon: IconCreditCard,
-    }
+    },
+    {
+      title: "API Docs",
+      url: "/docs",
+      icon: IconBolt,
+    },
   ],
   navSecondary: [
     {
@@ -95,8 +100,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <img src="/Punjab-removebg-preview.png" alt="Punjab Logo" className="w-full h-full object-contain" />
                 </div>
                 <div className="flex flex-col leading-tight">
-                  <span className="text-base font-bold text-sidebar-foreground tracking-wide">
-                    InderForms
+                  <span className="truncate font-semibold text-lg" style={{ fontFamily: "var(--font-geist-sans)" }}>
+                    MakeForms
                   </span>
                   <span className="text-[10px] text-sidebar-foreground/50 font-medium uppercase tracking-widest">
                     Punjab Edition
@@ -206,6 +211,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </div>
         <NavUser user={data.user} />
       </SidebarFooter> */}
+      <SidebarFooter className="border-t border-sidebar-border/60 px-3 pt-4 pb-4">
+        <NavUser user={data.user} />
+      </SidebarFooter>
     </Sidebar>
   )
 }
