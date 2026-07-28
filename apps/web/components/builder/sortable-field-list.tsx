@@ -51,32 +51,36 @@ export function SortableFieldList({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [optimisticFields, setOptimisticFields] = useState<Field[] | null>(null);
 
-  const reorderFields = trpc.form.updateField.useMutation({
-    onSuccess: () => {
-      // Clear optimistic state and refetch
-      setOptimisticFields(null);
-    },
-    onError: () => {
-      // Revert optimistic update on error
-      setOptimisticFields(null);
-    },
-  });
-
+  const reorderFieldsMutation = trpc.form.reorderFields.useMutation();
   const utils = trpc.useUtils();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // 8px movement before drag starts (prevents accidental drags on click)
+        distance: 8,
       },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    }),
+    })
   );
 
   const displayFields = optimisticFields ?? fields;
   const activeField = displayFields.find((f) => f.id === activeId);
+
+  const saveReorderedFields = async (reordered: Field[]) => {
+    setOptimisticFields(reordered);
+    try {
+      await reorderFieldsMutation.mutateAsync({
+        fieldIds: reordered.map((f) => f.id),
+      });
+    } catch (err) {
+      console.error("Failed to persist field order:", err);
+    } finally {
+      utils.form.getFields.invalidate({ formId });
+      setOptimisticFields(null);
+    }
+  };
 
   function handleDragStart(event: DragStartEvent) {
     setActiveId(event.active.id as string);
@@ -93,12 +97,8 @@ export function SortableFieldList({
 
     if (oldIndex === -1 || newIndex === -1) return;
 
-    // Note: If you need to actually save reorder on the backend, 
-    // you would iterate and call updateField for each, or create a batch endpoint.
-    // For now, since trpc.fields.reorder doesn't exist on formRouter, we just optimistic update.
-    
-    // We should call invalidate on onSuccess of a real endpoint.
-    // utils.form.getFields.invalidate();
+    const reordered = arrayMove(displayFields, oldIndex, newIndex);
+    saveReorderedFields(reordered);
   }
 
   function handleDragCancel() {
@@ -132,7 +132,6 @@ export function SortableFieldList({
         </div>
       </SortableContext>
 
-      {/* Drag overlay — renders a floating copy of the dragged card */}
       <DragOverlay dropAnimation={{ duration: 200, easing: "ease" }}>
         {activeField ? (
           <FieldCardOverlay field={activeField} index={displayFields.indexOf(activeField)} />
@@ -195,36 +194,44 @@ function SortableFieldCard({
             {...listeners}
             className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-orange-500 transition-colors p-0.5 -ml-1 touch-none"
             onClick={(e) => e.stopPropagation()}
-            aria-label="Drag to reorder"
+            title="Drag to reorder"
           >
             <span className="material-symbols-outlined text-[18px]">drag_indicator</span>
           </button>
+          
           <span
             className="text-[11px] text-muted-foreground bg-slate-100 border border-slate-200 px-2 py-0.5 rounded font-medium"
             style={{ fontFamily: "var(--font-geist-mono)" }}
           >
             {index + 1}
           </span>
+          
           <span
             className="text-[12px] text-orange-500 uppercase font-medium"
             style={{ fontFamily: "var(--font-geist-mono)" }}
           >
             {field.type?.replace("_", " ")}
           </span>
+          
           {field.isRequired && (
             <span className="text-[10px] text-red-500">*required</span>
           )}
         </div>
+
+        {/* Delete Action */}
         <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
           }}
-          className="text-slate-400 hover:text-red-500 transition-colors p-1 opacity-0 group-hover:opacity-100"
+          className="text-slate-400 hover:text-red-500 transition-colors p-1 opacity-80 sm:opacity-0 group-hover:opacity-100 rounded hover:bg-red-50"
+          title="Delete field"
         >
           <span className="material-symbols-outlined text-[16px]">close</span>
         </button>
       </div>
+      
       <p className="text-[14px] text-foreground font-medium">{field.label}</p>
       {field.description && (
         <p className="text-[12px] text-muted-foreground mt-1">{field.description}</p>
@@ -233,7 +240,7 @@ function SortableFieldCard({
   );
 }
 
-// ─── Drag Overlay (floating card while dragging) ─────────────────────────────
+// ─── Drag Overlay ─────────────────────────────────────────────────────────────
 
 function FieldCardOverlay({ field, index }: { field: Field; index: number }) {
   return (

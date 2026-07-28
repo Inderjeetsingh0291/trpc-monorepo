@@ -3,6 +3,7 @@ import { TRPCContext } from "../context";
 
 const ONE_MINUTE = 60 * 1000;
 const ONE_HOUR = 60 * ONE_MINUTE;
+const TWELVE_HOURS = 12 * ONE_HOUR;
 const ONE_DAY = 24 * ONE_HOUR;
 const ONE_MONTH = 30 * ONE_DAY;
 const ONE_YEAR = 12 * ONE_MONTH;
@@ -12,7 +13,7 @@ const defaultCookieOption: CookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: ONE_YEAR,
+    maxAge: TWELVE_HOURS,
 };
 
 export function createCookieFactory(res: Response) {

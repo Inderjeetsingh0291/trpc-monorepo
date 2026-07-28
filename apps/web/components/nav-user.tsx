@@ -9,6 +9,7 @@ import {
 } from "@tabler/icons-react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { trpc } from "~/trpc/client"
 
 import {
   Avatar,
@@ -30,7 +31,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "~/components/ui/sidebar"
-import { useAuth, useUser } from "@clerk/nextjs"
+import { useUser, useSignOut } from "~/hooks/api/auth"
 
 export function NavUser({
   user: propUser,
@@ -43,18 +44,27 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const { user: authUser } = useUser()
-  const { signOut } = useAuth()
+  const { signOutAsync } = useSignOut()
   const router = useRouter()
+  const utils = trpc.useUtils()
 
   const displayUser = {
     name: authUser?.fullName ?? propUser?.name ?? "User",
-    email: authUser?.primaryEmailAddress?.emailAddress ?? propUser?.email ?? "",
-    avatar: authUser?.imageUrl ?? propUser?.avatar ?? "",
+    email: authUser?.email ?? propUser?.email ?? "",
+    avatar: authUser?.profileImageUrl ?? propUser?.avatar ?? "",
   }
 
   const handleSignOut = async () => {
-    await signOut()
-    router.replace("/login")
+    try {
+      await signOutAsync()
+    } catch (err) {
+      console.error("Logout error:", err)
+    } finally {
+      utils.auth.getLoggedInUserInfo.setData(undefined, undefined);
+      await utils.auth.getLoggedInUserInfo.invalidate();
+      router.replace("/login");
+      router.refresh();
+    }
   }
 
   return (

@@ -33,9 +33,17 @@ export function FormSettingsPanel({ formId }: FormSettingsPanelProps) {
     },
   });
 
+  const updateFormSettings = trpc.form.updateFormSettings.useMutation({
+    onSuccess: () => {
+      utils.form.getFormById.invalidate();
+      toast.success("Settings saved");
+    },
+  });
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<"public" | "unlisted">("public");
+  const [layout, setLayout] = useState<"step" | "list">("step");
   const [responseLimit, setResponseLimit] = useState<string>("");
   const [expiresAt, setExpiresAt] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -46,9 +54,17 @@ export function FormSettingsPanel({ formId }: FormSettingsPanelProps) {
       setTitle(form.title);
       setDescription(form.description ?? "");
       setVisibility(form.visibility as "public" | "unlisted");
+      setLayout((form as any).layout ?? "step");
       setResponseLimit(form.maxResponses?.toString() ?? "");
-      setExpiresAt(form.expiresAt ? new Date(form.expiresAt).toISOString().split("T")[0] ?? "" : "");
-      setPassword("");
+      if (form.expiresAt) {
+        const d = new Date(form.expiresAt);
+        // Format to YYYY-MM-THH:mm for datetime-local input
+        const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        setExpiresAt(iso);
+      } else {
+        setExpiresAt("");
+      }
+      setPassword((form as any).password ?? "");
     }
   }, [form]);
 
@@ -71,6 +87,27 @@ export function FormSettingsPanel({ formId }: FormSettingsPanelProps) {
   const handleVisibilityChange = (v: "public" | "unlisted") => {
     setVisibility(v);
     updateVisibility.mutate({ formId, isActive: form.isActive ?? true, visibility: v });
+  };
+
+  const handleLayoutChange = (l: "step" | "list") => {
+    setLayout(l);
+    updateFormSettings.mutate({ formId, layout: l });
+  };
+
+  const handleSaveSettings = () => {
+    const maxResponsesNum = responseLimit ? parseInt(responseLimit, 10) : null;
+    const expiresAtDate = expiresAt ? new Date(expiresAt) : null;
+    const passwordVal = password.trim() || null;
+
+    updateFormSettings.mutate({
+      formId,
+      title: title.trim() || form.title,
+      description: description.trim() || null,
+      layout,
+      expiresAt: expiresAtDate,
+      maxResponses: maxResponsesNum,
+      password: passwordVal,
+    });
   };
 
   const slug = form.id;
@@ -156,6 +193,26 @@ export function FormSettingsPanel({ formId }: FormSettingsPanelProps) {
         </div>
       </Section>
 
+      {/* Layout Option */}
+      <Section label="Layout">
+        <div className="flex gap-2">
+          <VisibilityOption
+            active={layout === "step"}
+            onClick={() => handleLayoutChange("step")}
+            icon="view_carousel"
+            label="Step-by-step"
+            description="One question at a time"
+          />
+          <VisibilityOption
+            active={layout === "list"}
+            onClick={() => handleLayoutChange("list")}
+            icon="view_list"
+            label="List view"
+            description="All questions at once"
+          />
+        </div>
+      </Section>
+
       {/* Response Limit */}
       <Section label="Response Limit">
         <input
@@ -170,9 +227,9 @@ export function FormSettingsPanel({ formId }: FormSettingsPanelProps) {
       </Section>
 
       {/* Expiry */}
-      <Section label="Expires At">
+      <Section label="Expires At (Date & Time)">
         <input
-          type="date"
+          type="datetime-local"
           value={expiresAt}
           onChange={(e) => setExpiresAt(e.target.value)}
           className="w-full bg-slate-50 border border-border rounded-lg px-3 py-2 text-[12px] text-foreground focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none"
@@ -231,11 +288,11 @@ export function FormSettingsPanel({ formId }: FormSettingsPanelProps) {
 
       {/* Save button */}
       <button
-        onClick={handleSave}
-        disabled={updateForm.isPending}
+        onClick={handleSaveSettings}
+        disabled={updateFormSettings.isPending}
         className="w-full bg-orange-500 text-white text-[12px] font-semibold py-2.5 rounded-lg hover:brightness-110 transition-all disabled:opacity-50 shadow-sm"
       >
-        {updateForm.isPending ? "Saving..." : "Save Settings"}
+        {updateFormSettings.isPending ? "Saving..." : "Save Settings"}
       </button>
     </div>
   );

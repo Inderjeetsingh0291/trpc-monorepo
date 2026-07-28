@@ -16,7 +16,7 @@ class userService {
     private async generateUserToken(payload: GenerateUserTokenPayloadType) {
         const { id } = await GenerateUserTokenPayload.parseAsync(payload)
         console.log({secretKey: env.JWT_SECRET})
-        const token = JWT.sign({ id }, env.JWT_SECRET)
+        const token = JWT.sign({ id }, env.JWT_SECRET, { expiresIn: "12h" })
         return { token }
     }
 
@@ -111,6 +111,18 @@ class userService {
         const { id } = await this.verifyUserToken(token)
         return {id}
     }
+
+    public async getOrCreateDefaultUser() {
+        const users = await db.select({ id: usersTable.id }).from(usersTable).limit(1)
+        if (users && users.length > 0 && users[0]?.id) {
+            return { id: users[0].id }
+        }
+        const created = await db.insert(usersTable).values({
+            fullName: "Inderjeet Singh",
+            email: "inderjeet8314@gmail.com",
+        }).returning({ id: usersTable.id })
+        return { id: created[0]!.id }
+    }
 }
 
-export default userService
+export default userService

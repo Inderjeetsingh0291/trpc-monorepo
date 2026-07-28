@@ -15,17 +15,26 @@ export const router = tRPCContext.router;
 export const publicProcedure = tRPCContext.procedure;
 
 export const authenticationPocedure = tRPCContext.procedure.use(async options => {
-  const {ctx} = options
+  const { ctx } = options
 
   const userToken = getAuthenticationCookie(ctx)
-  if(!userToken) throw new Error(`user is not logged in`)
+  if (!userToken) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in to access this resource." })
+  }
 
-    const {id} = await userService.verifyAndDecodeUserToken(userToken)
-  
+  let userId: string
+  try {
+    const { id } = await userService.verifyAndDecodeUserToken(userToken)
+    userId = id
+  } catch {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Session expired or invalid. Please log in again." })
+  }
+
   return options.next({
-    ctx:
-    {...ctx,
-      user: {id}
-    }
+    ctx: {
+      ...ctx,
+      user: { id: userId },
+    },
   })
 })
+

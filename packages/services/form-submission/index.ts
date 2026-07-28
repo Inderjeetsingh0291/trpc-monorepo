@@ -1,4 +1,4 @@
-import { db, eq, count } from "@repo/database"
+import { db, eq, count, and } from "@repo/database"
 import { formSubmissionsTable } from "@repo/database/models/form-submition"
 import { formsTable } from "@repo/database/models/form"
 import { usersTable } from "@repo/database/models/user"
@@ -116,8 +116,17 @@ class FormSubmissionService {
         }
     }
 
-    public async listSubmissionsByFormId(payload: ListSubmissionsByFormIdInputType) {
+    public async listSubmissionsByFormId(payload: ListSubmissionsByFormIdInputType & { userId: string }) {
         const { formId } = await listSubmissionsByFormIdInput.parseAsync(payload)
+        const { userId } = payload
+
+        // Verify ownership: only the form creator can view submissions
+        const [form] = await db.select({ createdBy: formsTable.createdBy })
+            .from(formsTable)
+            .where(eq(formsTable.id, formId))
+
+        if (!form) throw new Error("Form not found")
+        if (form.createdBy !== userId) throw new Error("You are not authorized to view submissions for this form.")
 
         const submissions = await db.select({
             id: formSubmissionsTable.id,

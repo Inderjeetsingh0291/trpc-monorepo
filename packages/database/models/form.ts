@@ -20,6 +20,8 @@ export const formsTable = pgTable("forms", {
   visibility: formVisibilityEnum("visibility").default("unlisted").notNull(),
   expiresAt: timestamp("expires_at"),
   maxResponses: integer("max_responses"),
+  password: varchar("password", { length: 255 }),
+  layout: varchar("layout", { length: 20 }).default("step").notNull(),
 
   createdBy: uuid("created_by").references(() => usersTable.id),
   updatedBy: uuid("updated_by").references(() => usersTable.id),

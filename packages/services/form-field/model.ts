@@ -7,6 +7,7 @@ const fieldTypeValues = [
     "phone",
     "textarea",
     "select",
+    "multi_select",
     "radio",
     "checkbox",
     "YES_NO",
@@ -15,6 +16,7 @@ const fieldTypeValues = [
     "rating",
     "date"
 ] as const
+
 
 // --- Create Field ---
 

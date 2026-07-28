@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { useGetFormById } from "~/hooks/api/form"
 import { useSubmitForm } from "~/hooks/api/form-submission"
 import { Button } from "~/components/ui/button"
@@ -8,12 +9,41 @@ import { Spinner } from "~/components/ui/spinner"
 import { toast } from "sonner"
 
 export function PublicForm({ formId }: { formId: string }) {
+  const router = useRouter()
   const { form, isLoading, isError, error } = useGetFormById(formId)
   const { submitFormAsync, isPending: isSubmitting } = useSubmitForm()
   
   const [formData, setFormData] = useState<Record<string, string>>({})
   const [submitted, setSubmitted] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
+  const [countdown, setCountdown] = useState(10)
+
+  // Password protection state
+  const [passwordInput, setPasswordInput] = useState("")
+  const [passwordUnlocked, setPasswordUnlocked] = useState(false)
+  const [passwordError, setPasswordError] = useState("")
+
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Auto-redirect countdown after submission
+  useEffect(() => {
+    if (submitted) {
+      setCountdown(10)
+      countdownRef.current = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(countdownRef.current!)
+            router.push("/")
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+    }
+    return () => {
+      if (countdownRef.current) clearInterval(countdownRef.current)
+    }
+  }, [submitted, router])
 
   if (isLoading) {
     return (
@@ -55,6 +85,62 @@ export function PublicForm({ formId }: { formId: string }) {
     )
   }
 
+  // Password protection gate
+  const hasPassword = !!(form as any).password
+  if (hasPassword && !passwordUnlocked) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4 bg-slate-50">
+        <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center max-w-md w-full shadow-lg">
+          <div className="flex size-16 mx-auto items-center justify-center rounded-2xl mb-4 bg-orange-50 text-orange-500">
+            <span className="material-symbols-outlined text-[32px]">lock</span>
+          </div>
+          <h2 className="text-xl font-bold mb-2 text-slate-900">Password Protected</h2>
+          <p className="text-slate-500 text-sm mb-6">
+            This form is password protected. Enter the password to continue.
+          </p>
+          <div className="flex flex-col gap-3">
+            <input
+              type="password"
+              placeholder="Enter password..."
+              value={passwordInput}
+              onChange={e => {
+                setPasswordInput(e.target.value)
+                setPasswordError("")
+              }}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  if (passwordInput === (form as any).password) {
+                    setPasswordUnlocked(true)
+                  } else {
+                    setPasswordError("Incorrect password. Please try again.")
+                  }
+                }
+              }}
+              className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-[16px] text-slate-900 shadow-sm placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all text-center"
+              autoFocus
+            />
+            {passwordError && (
+              <p className="text-red-500 text-sm">{passwordError}</p>
+            )}
+            <Button
+              onClick={() => {
+                if (passwordInput === (form as any).password) {
+                  setPasswordUnlocked(true)
+                } else {
+                  setPasswordError("Incorrect password. Please try again.")
+                }
+              }}
+              className="rounded-xl h-11 px-8 bg-orange-500 hover:bg-orange-600 text-white font-semibold"
+            >
+              Unlock Form
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Thank you screen with auto-redirect
   if (submitted) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4 bg-slate-50">
@@ -63,20 +149,44 @@ export function PublicForm({ formId }: { formId: string }) {
             <span className="material-symbols-outlined text-[40px]">task_alt</span>
           </div>
           <h2 className="text-2xl font-bold mb-3 text-slate-900">Thank you!</h2>
-          <p className="text-slate-500 mb-8">
+          <p className="text-slate-500 mb-6">
             Your response has been recorded successfully.
           </p>
-          <Button
-            variant="outline"
-            className="rounded-xl h-11 px-6 border-slate-200 text-slate-600 hover:bg-slate-50"
-            onClick={() => {
-              setFormData({})
-              setSubmitted(false)
-              setCurrentStep(0)
-            }}
-          >
-            Submit another response
-          </Button>
+          <div className="mb-8">
+            <div className="text-slate-400 text-sm mb-3">
+              Redirecting you to the home page in{" "}
+              <span className="font-bold text-orange-500 text-base">{countdown}</span>
+              {" "}seconds...
+            </div>
+            {/* Progress bar */}
+            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-orange-500 transition-all duration-1000 ease-linear rounded-full"
+                style={{ width: `${((10 - countdown) / 10) * 100}%` }}
+              />
+            </div>
+          </div>
+          <div className="flex flex-col gap-3">
+            <Button
+              onClick={() => router.push("/")}
+              className="rounded-xl h-11 px-8 bg-orange-500 hover:bg-orange-600 text-white font-semibold"
+            >
+              Go Home Now
+            </Button>
+            <Button
+              variant="outline"
+              className="rounded-xl h-11 px-6 border-slate-200 text-slate-600 hover:bg-slate-50"
+              onClick={() => {
+                if (countdownRef.current) clearInterval(countdownRef.current)
+                setFormData({})
+                setSubmitted(false)
+                setCurrentStep(0)
+                setCountdown(10)
+              }}
+            >
+              Submit another response
+            </Button>
+          </div>
         </div>
       </div>
     )
@@ -101,12 +211,21 @@ export function PublicForm({ formId }: { formId: string }) {
     setCurrentStep(s => Math.max(0, s - 1))
   }
 
-  const handleSubmit = async (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent, forceListValidation = false) => {
     e?.preventDefault()
     
-    if (currentField?.isRequired && !formData[currentField.labelKey]) {
-      toast.error("This field is required")
-      return
+    if (forceListValidation) {
+      for (const field of form.fields) {
+        if (field.isRequired && !formData[field.labelKey]) {
+          toast.error(`"${field.label}" is required`)
+          return
+        }
+      }
+    } else {
+      if (currentField?.isRequired && !formData[currentField.labelKey]) {
+        toast.error("This field is required")
+        return
+      }
     }
 
     const values = form.fields.map(field => ({
@@ -118,15 +237,15 @@ export function PublicForm({ formId }: { formId: string }) {
       await submitFormAsync({ formId, values })
       setSubmitted(true)
       toast.success("Form submitted successfully!")
-    } catch {
-      toast.error("Failed to submit form. Please try again.")
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to submit form. Please try again.")
     }
   }
 
   const renderFieldInput = (field: typeof currentField) => {
     if (!field) return null
     const value = formData[field.labelKey] || ""
-    const options = (field.options as Array<{ label: string; value: string }>) ?? [];
+    const options = ((field as any).options as Array<{ label: string; value: string }>) ?? [];
 
     switch (field.type) {
       case "textarea":
@@ -255,8 +374,12 @@ export function PublicForm({ formId }: { formId: string }) {
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
-                if (currentStep >= totalSteps - 1) handleSubmit();
-                else handleNext();
+                if ((form as any).layout === "list") {
+                  // handled by submit button
+                } else {
+                  if (currentStep >= totalSteps - 1) handleSubmit();
+                  else handleNext();
+                }
               }
             }}
             className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-4 text-[16px] text-slate-900 shadow-sm placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
@@ -291,6 +414,39 @@ export function PublicForm({ formId }: { formId: string }) {
               <span className="material-symbols-outlined text-[48px] text-slate-200 mb-4">draft</span>
               <p className="text-slate-500 text-lg">This form has no fields yet.</p>
             </div>
+          ) : (form as any).layout === "list" ? (
+            <div className="flex flex-col h-full">
+              {form.description && (
+                <p className="text-[16px] text-slate-500 mb-10 leading-relaxed border-b border-slate-100 pb-8">{form.description}</p>
+              )}
+              <div className="flex-1 flex flex-col gap-12">
+                {form.fields.map((field, idx) => (
+                  <div key={field.id} className="">
+                    <h2 className="text-xl font-semibold text-slate-900 mb-2 leading-tight">
+                      {idx + 1}. {field.label}
+                      {field.isRequired && <span className="text-red-500 ml-2">*</span>}
+                    </h2>
+                    {field.description && (
+                      <p className="text-[14px] text-slate-500 mb-4 leading-relaxed">{field.description}</p>
+                    )}
+                    <div className="mt-4">
+                      {renderFieldInput(field)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center justify-end pt-10 mt-10 border-t border-slate-200">
+                <Button 
+                  type="button" 
+                  onClick={(e) => handleSubmit(e, true)} 
+                  disabled={isSubmitting}
+                  className="rounded-xl px-8 h-12 bg-orange-500 hover:bg-orange-600 text-white font-semibold text-[15px] shadow-md hover:shadow-lg transition-all"
+                >
+                  {isSubmitting ? <Spinner className="mr-2 size-4" /> : null}
+                  Submit <span className="material-symbols-outlined text-[20px] ml-1.5">check</span>
+                </Button>
+              </div>
+            </div>
           ) : (
             <>
               <p className="text-[12px] text-slate-400 mb-5 font-bold tracking-widest uppercase" style={{ fontFamily: "var(--font-geist-mono)" }}>
@@ -298,14 +454,14 @@ export function PublicForm({ formId }: { formId: string }) {
               </p>
               
               <h2 className="text-3xl font-semibold text-slate-900 mb-3 leading-tight" style={{ letterSpacing: "-0.02em" }}>
-                {currentField.label}
-                {currentField.isRequired && <span className="text-red-500 ml-2">*</span>}
+                {currentField?.label}
+                {currentField?.isRequired && <span className="text-red-500 ml-2">*</span>}
               </h2>
               
-              {currentField.description && (
+              {currentField?.description && (
                 <p className="text-[16px] text-slate-500 mb-8 leading-relaxed">{currentField.description}</p>
               )}
-              
+
               <div className="flex-1 flex flex-col justify-start mt-4">
                 {renderFieldInput(currentField)}
               </div>
@@ -325,7 +481,7 @@ export function PublicForm({ formId }: { formId: string }) {
                 {currentStep >= totalSteps - 1 ? (
                   <Button 
                     type="button" 
-                    onClick={handleSubmit} 
+                    onClick={() => handleSubmit()} 
                     disabled={isSubmitting}
                     className="rounded-xl px-8 h-12 bg-orange-500 hover:bg-orange-600 text-white font-semibold text-[15px] shadow-md hover:shadow-lg transition-all"
                   >

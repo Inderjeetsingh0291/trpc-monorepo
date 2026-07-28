@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { trpc } from "~/trpc/client";
 import { useFlowData } from "./use-flow-data";
 import type { FlowNode } from "./types";
 
@@ -29,13 +30,16 @@ interface Connection { from: string; to: string; }
 
 const CARD_W = 360;
 const CARD_H = 88;
-const NODE_GAP = 160; // vertical gap between nodes
+const NODE_GAP = 160;
 
 function FlowCanvasInner({
   fields, formTitle, formId, onDeleteField, onSelectField, selectedFieldId,
 }: FlowCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { nodes } = useFlowData(fields, formTitle);
+
+  const reorderFieldsMutation = trpc.form.reorderFields.useMutation();
+  const utils = trpc.useUtils();
 
   const [cam, setCam] = useState({ x: 0, y: 0, zoom: 1 });
   const [isPanning, setIsPanning] = useState(false);
@@ -48,7 +52,9 @@ function FlowCanvasInner({
   const [connectingMouse, setConnectingMouse] = useState<Pos>({ x: 0, y: 0 });
   const [ready, setReady] = useState(false);
 
-  // ─── Layout nodes vertically, centred in viewport ────────────────────────────
+  const nodeKey = nodes.map(n => n.id).join(",");
+
+  // ─── Layout nodes vertically whenever fields or order changes ───────────────
   useEffect(() => {
     if (nodes.length === 0) return;
     const rect = containerRef.current?.getBoundingClientRect();
@@ -58,13 +64,12 @@ function FlowCanvasInner({
     const newPositions = new Map<string, Pos>();
     nodes.forEach((node, i) => {
       newPositions.set(node.id, {
-        x: vw / 2 - CARD_W / 2,   // horizontally centred
+        x: vw / 2 - CARD_W / 2,
         y: 60 + i * NODE_GAP,
       });
     });
     setPositions(newPositions);
 
-    // Build linear connections
     setConnections(() => {
       const conns: Connection[] = [];
       for (let i = 0; i < nodes.length - 1; i++) {
@@ -73,27 +78,28 @@ function FlowCanvasInner({
       return conns;
     });
 
-    // Fit camera so all nodes are in view using newPositions
-    const allPos = Array.from(newPositions.values());
-    const minX = Math.min(...allPos.map(p => p.x));
-    const maxX = Math.max(...allPos.map(p => p.x + CARD_W));
-    const minY = Math.min(...allPos.map(p => p.y));
-    const maxY = Math.max(...allPos.map(p => p.y + CARD_H));
-    
-    const pad = 80;
-    const zoom = Math.max(0.1, Math.min(
-      (vw - pad * 2) / Math.max(maxX - minX, 1),
-      (vh - pad * 2) / Math.max(maxY - minY, 1),
-      1.2
-    ));
-    setCam({
-      zoom,
-      x: vw / 2 - ((minX + maxX) / 2) * zoom,
-      y: vh / 2 - ((minY + maxY) / 2) * zoom,
-    });
-    setReady(true);
+    if (!ready) {
+      const allPos = Array.from(newPositions.values());
+      const minX = Math.min(...allPos.map(p => p.x));
+      const maxX = Math.max(...allPos.map(p => p.x + CARD_W));
+      const minY = Math.min(...allPos.map(p => p.y));
+      const maxY = Math.max(...allPos.map(p => p.y + CARD_H));
+      
+      const pad = 80;
+      const zoom = Math.max(0.1, Math.min(
+        (vw - pad * 2) / Math.max(maxX - minX, 1),
+        (vh - pad * 2) / Math.max(maxY - minY, 1),
+        1.2
+      ));
+      setCam({
+        zoom,
+        x: vw / 2 - ((minX + maxX) / 2) * zoom,
+        y: vh / 2 - ((minY + maxY) / 2) * zoom,
+      });
+      setReady(true);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes.length, formId]);
+  }, [nodeKey, formId]);
 
   // ─── Fit all nodes into view ─────────────────────────────────────────────────
   const fitView = useCallback(() => {
@@ -119,7 +125,7 @@ function FlowCanvasInner({
     });
   }, [positions]);
 
-  // ─── Pan ─────────────────────────────────────────────────────────────────────
+  // ─── Pan & Drag Handlers ────────────────────────────────────────────────────
   const onCanvasDown = useCallback((e: React.PointerEvent) => {
     if (e.target === e.currentTarget || e.button === 1) {
       setIsPanning(true);
@@ -148,14 +154,38 @@ function FlowCanvasInner({
     }
   }, [isPanning, panStart, dragId, dragOffset, cam, connectingFrom]);
 
-  const onCanvasUp = useCallback((e: React.PointerEvent) => {
+  const onCanvasUp = useCallback(async (e: React.PointerEvent) => {
     if (isPanning) {
       setIsPanning(false);
       try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
     }
-    if (dragId) setDragId(null);
+
+    if (dragId) {
+      const draggedNodeId = dragId;
+      setDragId(null);
+
+      // Check if canvas node drag resulted in new vertical ordering for fields
+      if (fields && fields.length > 0 && draggedNodeId !== "__welcome__" && draggedNodeId !== "__success__") {
+        const fieldNodesWithPos = fields
+          .map((f) => ({ id: f.id, y: positions.get(f.id)?.y ?? 0 }))
+          .sort((a, b) => a.y - b.y);
+
+        const newFieldIds = fieldNodesWithPos.map((f) => f.id);
+        const currentFieldIds = fields.map((f) => f.id);
+
+        if (newFieldIds.join(",") !== currentFieldIds.join(",")) {
+          try {
+            await reorderFieldsMutation.mutateAsync({ fieldIds: newFieldIds });
+          } catch (err) {
+            console.error("Failed to reorder fields via canvas drag:", err);
+          } finally {
+            utils.form.getFields.invalidate({ formId });
+          }
+        }
+      }
+    }
+
     if (connectingFrom) {
-      // Detect drop target
       const rect = containerRef.current?.getBoundingClientRect();
       if (rect) {
         const mx = (e.clientX - rect.left - cam.x) / cam.zoom;
@@ -175,9 +205,8 @@ function FlowCanvasInner({
       }
       setConnectingFrom(null);
     }
-  }, [isPanning, dragId, connectingFrom, cam, positions]);
+  }, [isPanning, dragId, connectingFrom, fields, positions, cam, formId, reorderFieldsMutation, utils]);
 
-  // ─── Zoom (mouse wheel) ───────────────────────────────────────────────────────
   const onWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     const f = e.deltaY > 0 ? 0.92 : 1.09;
@@ -192,7 +221,6 @@ function FlowCanvasInner({
     });
   }, []);
 
-  // ─── Node drag ────────────────────────────────────────────────────────────────
   const startDrag = useCallback((id: string, e: React.PointerEvent) => {
     e.stopPropagation(); e.preventDefault();
     const pos = positions.get(id) ?? { x: 0, y: 0 };
@@ -200,7 +228,6 @@ function FlowCanvasInner({
     setDragOffset({ x: e.clientX - pos.x * cam.zoom - cam.x, y: e.clientY - pos.y * cam.zoom - cam.y });
   }, [positions, cam]);
 
-  // ─── Connect port drag ────────────────────────────────────────────────────────
   const startConnect = useCallback((fromId: string, e: React.PointerEvent) => {
     e.stopPropagation(); e.preventDefault();
     setConnectingFrom(fromId);
@@ -213,16 +240,13 @@ function FlowCanvasInner({
     }
   }, [cam]);
 
-  // ─── Delete connection by clicking it (double‑click port) ────────────────────
   const deleteConnection = (from: string, to: string) => {
     setConnections(prev => prev.filter(c => !(c.from === from && c.to === to)));
   };
 
   const gridSize = 28 * cam.zoom;
 
-  // ─── Empty state ─────────────────────────────────────────────────────────────
   if (ready && nodes.length <= 2) {
-    // Only Welcome + Thank You — no real fields yet
     return (
       <div ref={containerRef} className="absolute inset-0 flex flex-col items-center justify-center bg-[#0c0c12] gap-4">
         <div
@@ -278,17 +302,14 @@ function FlowCanvasInner({
             const col = getLineColor(nodes.find(n => n.id === conn.from));
             return (
               <g key={`${conn.from}-${conn.to}`} className="pointer-events-auto" onDoubleClick={() => deleteConnection(conn.from, conn.to)}>
-                {/* Hit area */}
                 <path d={d} fill="none" stroke="transparent" strokeWidth={14} style={{ cursor: "pointer" }} />
                 <path d={d} fill="none" stroke={col} strokeWidth={2.5} strokeLinecap="round" opacity={0.9} />
-                {/* Animated midpoint dot */}
                 <circle cx={(x1 + x2) / 2} cy={(y1 + y2) / 2} r={4} fill={col}>
                   <animate attributeName="opacity" values="0.4;1;0.4" dur="2.5s" repeatCount="indefinite" />
                 </circle>
               </g>
             );
           })}
-          {/* Live connecting line */}
           {connectingFrom && (() => {
             const fp = positions.get(connectingFrom);
             if (!fp) return null;
@@ -323,7 +344,6 @@ function FlowCanvasInner({
                 transition: isDragging ? "none" : "transform 0.15s ease, filter 0.15s ease",
               }}
             >
-              {/* Card */}
               <div
                 className={`rounded-2xl overflow-hidden shadow-md cursor-grab active:cursor-grabbing transition-shadow ${
                   isSelected ? "ring-2 ring-orange-500 ring-offset-2 shadow-lg" : "hover:shadow-lg"
@@ -335,10 +355,12 @@ function FlowCanvasInner({
                 onClick={e => { e.stopPropagation(); if (!isSynthetic) onSelectField(node.id); }}
                 onPointerDown={e => startDrag(node.id, e)}
               >
-                <NodeContent node={node} onDelete={!isSynthetic ? () => onDeleteField(node.id) : undefined} />
+                <NodeContent
+                  node={node}
+                  onDelete={!isSynthetic ? () => onDeleteField(node.id) : undefined}
+                />
               </div>
 
-              {/* Bottom port — drag to connect */}
               {!isSynthetic && (
                 <div
                   className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center cursor-crosshair pointer-events-auto z-50 transition-transform hover:scale-125 shadow-md"
@@ -350,7 +372,6 @@ function FlowCanvasInner({
                 </div>
               )}
 
-              {/* Top port — visual only */}
               {!isSynthetic && (
                 <div
                   className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full border-2 border-white shadow-sm pointer-events-none"
@@ -384,7 +405,7 @@ function FlowCanvasInner({
 
       {/* Hint */}
       <div className="absolute bottom-4 right-4 z-20 text-[10px] text-[#5a5a6e] pointer-events-none" style={{ fontFamily: "var(--font-geist-mono)" }}>
-        Scroll to zoom · Drag background to pan · Drag port to connect · Double-click line to remove
+        Scroll to zoom · Drag background to pan · Drag node to reorder · Drag port to connect
       </div>
     </div>
   );
@@ -392,7 +413,13 @@ function FlowCanvasInner({
 
 // ─── Node Content ─────────────────────────────────────────────────────────────
 
-function NodeContent({ node, onDelete }: { node: FlowNode; onDelete?: () => void }) {
+function NodeContent({
+  node,
+  onDelete,
+}: {
+  node: FlowNode;
+  onDelete?: () => void;
+}) {
   if (node.type === "welcome") {
     return (
       <div className="flex items-center gap-3 p-4">
@@ -425,47 +452,19 @@ function NodeContent({ node, onDelete }: { node: FlowNode; onDelete?: () => void
 
   const icon = getFieldIcon(field.fieldType);
 
-  if (node.type === "choice") {
-    const opts = (field.options as Array<{ label: string }> | null) ?? [];
-    return (
-      <div className="p-4">
-        <div className="flex items-center gap-3 mb-3">
-          <div className={`w-11 h-11 rounded-xl ${icon.bg} flex items-center justify-center shrink-0`}>
-            <span className={`material-symbols-outlined text-xl ${icon.color}`}>{icon.icon}</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2">
-              <p className="font-semibold text-sm text-slate-900 truncate">{field.label}</p>
-              {onDelete && <DeleteBtn onDelete={onDelete} />}
-            </div>
-            <p className="text-xs text-slate-400 mt-0.5">{getDesc(field.fieldType)}</p>
-          </div>
-        </div>
-        {opts.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {opts.slice(0, 4).map((o, i) => (
-              <span key={i} className="px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10px] text-amber-700 font-medium">
-                {typeof o === 'string' ? o : (o as any).label}
-              </span>
-            ))}
-            {opts.length > 4 && <span className="px-2 py-1 text-[10px] text-slate-400">+{opts.length - 4} more</span>}
-          </div>
-        )}
-      </div>
-    );
-  }
-
   return (
-    <div className="flex items-center gap-3 p-4">
-      <div className={`w-11 h-11 rounded-xl ${icon.bg} flex items-center justify-center shrink-0 text-lg font-bold ${icon.color}`}>
-        {icon.content}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <p className="font-semibold text-sm text-slate-900 truncate">{field.label}</p>
-          {onDelete && <DeleteBtn onDelete={onDelete} />}
+    <div className="p-4">
+      <div className="flex items-center gap-3">
+        <div className={`w-11 h-11 rounded-xl ${icon.bg} flex items-center justify-center shrink-0 text-lg font-bold ${icon.color}`}>
+          {icon.content}
         </div>
-        <p className="text-xs text-slate-400 mt-0.5">{getDesc(field.fieldType)}</p>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-semibold text-sm text-slate-900 truncate">{field.label}</p>
+            {onDelete && <DeleteBtn onDelete={onDelete} />}
+          </div>
+          <p className="text-xs text-slate-400 mt-0.5">{getDesc(field.fieldType)}</p>
+        </div>
       </div>
     </div>
   );
@@ -476,6 +475,7 @@ function DeleteBtn({ onDelete }: { onDelete: () => void }) {
     <button
       onClick={e => { e.stopPropagation(); onDelete(); }}
       className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+      title="Delete field"
     >
       <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
         <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z"/>

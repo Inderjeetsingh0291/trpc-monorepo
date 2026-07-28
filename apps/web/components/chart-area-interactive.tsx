@@ -131,12 +131,12 @@ const chartConfig = {
     label: "Visitors",
   },
   desktop: {
-    label: "Desktop",
-    color: "var(--primary)",
+    label: "Submissions",
+    color: "oklch(0.62 0.19 48)",
   },
   mobile: {
-    label: "Mobile",
-    color: "var(--primary)",
+    label: "Respondents",
+    color: "oklch(0.5 0.14 145)",
   },
 } satisfies ChartConfig
 
@@ -165,12 +165,12 @@ export function ChartAreaInteractive() {
   })
 
   return (
-    <Card className="@container/card">
-      <CardHeader>
-        <CardTitle>Total Visitors</CardTitle>
-        <CardDescription>
+    <Card className="@container/card overflow-hidden" style={{ borderColor: "oklch(0.88 0.025 75)", background: "oklch(1 0.005 80)" }}>
+      <CardHeader className="border-b border-[oklch(0.88_0.025_75)] pb-4">
+        <CardTitle className="text-[oklch(0.14_0.04_30)] font-bold">Submission Analytics</CardTitle>
+        <CardDescription className="text-[oklch(0.45_0.04_40)]">
           <span className="hidden @[540px]/card:block">
-            Total for the last 3 months
+            Submissions &amp; respondents over time
           </span>
           <span className="@[540px]/card:hidden">Last 3 months</span>
         </CardDescription>

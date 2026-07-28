@@ -17,7 +17,10 @@ import {
   deleteFormInputModel, deleteFormOutputModel,
   toggleFormStatusInputModel, toggleFormStatusOutputModel,
   listPublicFormsInputModel, listPublicFormsOutputModel,
+  updateFormSettingsInputModel, updateFormSettingsOutputModel,
+  reorderFieldsInputModel, reorderFieldsOutputModel,
 } from "./model";
+
 import { formService, formFieldService, formSubmissionService } from "@repo/services";
 
 const TAGS = ["Forms"];
@@ -128,6 +131,21 @@ export const formRouter = router({
     return await formFieldService.getFieldsByFormId(input);
   }),
 
+  reorderFields: authenticationPocedure.meta({
+    openapi: {
+      method: "POST",
+      path: getPath('/reorderFields'),
+      tags: ["Form Fields"],
+      protect: true
+    }
+  }).input(reorderFieldsInputModel).output(reorderFieldsOutputModel).mutation(async ({ input, ctx }) => {
+    return await formFieldService.reorderFields({
+      fieldIds: input.fieldIds,
+      updatedBy: ctx.user.id
+    });
+  }),
+
+
   // --- Submission Procedures ---
 
   submitForm: publicProcedure.meta({
@@ -157,8 +175,8 @@ export const formRouter = router({
       tags: ["Submissions"],
       protect: true
     }
-  }).input(listSubmissionsInputModel).output(listSubmissionsOutputModel).query(async ({ input }) => {
-    return await formSubmissionService.listSubmissionsByFormId(input);
+  }).input(listSubmissionsInputModel).output(listSubmissionsOutputModel).query(async ({ input, ctx }) => {
+    return await formSubmissionService.listSubmissionsByFormId({ formId: input.formId, userId: ctx.user.id });
   }),
 
   deleteForm: authenticationPocedure.meta({
@@ -191,6 +209,26 @@ export const formRouter = router({
       visibility: input.visibility,
     });
     return result;
+  }),
+
+  updateFormSettings: authenticationPocedure.meta({
+    openapi: {
+      method: "POST",
+      path: getPath('/updateFormSettings'),
+      tags: TAGS,
+      protect: true
+    }
+  }).input(updateFormSettingsInputModel).output(updateFormSettingsOutputModel).mutation(async ({ input, ctx }) => {
+    return await formService.updateFormSettings({
+      formId: input.formId,
+      userId: ctx.user.id,
+      title: input.title,
+      description: input.description,
+      layout: input.layout,
+      expiresAt: input.expiresAt,
+      maxResponses: input.maxResponses,
+      password: input.password,
+    });
   }),
 
   listPublicForms: publicProcedure.meta({

@@ -40,7 +40,7 @@ interface BuilderInsertPanelProps {
 
 export function BuilderInsertPanel({ onAddBlock, view = "form" }: BuilderInsertPanelProps) {
   return (
-    <aside className="w-[200px] h-full bg-background border-r border-border flex flex-col z-30 shrink-0">
+    <aside className="w-full md:w-[200px] h-full bg-background border-r border-border flex flex-col z-30 shrink-0">
       {/* Header */}
       <div className="px-4 py-3 border-b border-border">
         <span

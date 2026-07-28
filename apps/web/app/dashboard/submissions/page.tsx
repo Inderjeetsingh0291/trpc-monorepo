@@ -19,14 +19,54 @@ export default function SubmissionsDashboardPage() {
   }
 
   if (isError) {
+    const isAuthError = error?.message?.toLowerCase().includes("not logged in")
+
     return (
-      <div className="flex flex-col gap-4 py-4 md:py-6 px-4 lg:px-6">
-        <div className="rounded-lg border border-destructive p-8 text-center text-destructive">
-          {error?.message ?? "Failed to load forms."}
+      <div className="flex flex-col gap-8 py-6 px-4 lg:px-8 max-w-6xl">
+        <div
+          className="flex flex-col items-center justify-center gap-5 rounded-2xl border border-dashed p-12 text-center"
+          style={{
+            borderColor: "oklch(0.62 0.19 48 / 30%)",
+            background: "linear-gradient(135deg, oklch(0.62 0.19 48 / 5%), oklch(0.5 0.14 145 / 5%))",
+          }}
+        >
+          <div
+            className="flex size-14 items-center justify-center rounded-2xl shadow-md bg-white"
+            style={{ boxShadow: "0 0 20px oklch(0.62 0.19 48 / 20%)" }}
+          >
+            <Inbox className="size-6 text-[oklch(0.62_0.19_48)]" />
+          </div>
+
+          <div>
+            <h2 className="text-xl font-bold text-foreground">
+              {isAuthError ? "Authentication Required" : "Unable to load submissions"}
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1.5 max-w-md">
+              {isAuthError
+                ? "You need to be logged into your account to view your form submissions and collected responses."
+                : (error?.message ?? "Failed to load form submissions. Please try again.")}
+            </p>
+          </div>
+
+          {isAuthError && (
+            <Button
+              asChild
+              className="mt-2 rounded-xl font-semibold text-white shadow-md hover:shadow-lg transition-all"
+              style={{
+                background: "linear-gradient(135deg, oklch(0.62 0.19 48), oklch(0.7 0.2 60))",
+                border: "none",
+              }}
+            >
+              <Link href="/login">
+                Log In to Your Account <ArrowRight className="ml-2 size-4" />
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
     )
   }
+
 
   return (
     <div className="flex flex-col gap-8 py-4 md:py-6 px-4 lg:px-8 max-w-6xl">

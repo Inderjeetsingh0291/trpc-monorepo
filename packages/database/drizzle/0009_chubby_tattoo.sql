@@ -1,0 +1,1 @@
+ALTER TABLE "forms" ADD COLUMN "layout" varchar(20) DEFAULT 'step' NOT NULL;

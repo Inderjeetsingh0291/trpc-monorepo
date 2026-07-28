@@ -94,17 +94,43 @@ export function FormsTable() {
   }
 
   if (isError) {
+    const isAuthError = error?.message?.toLowerCase().includes("not logged in")
+
     return (
       <div
-        className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed p-12 text-center"
-        style={{ borderColor: "oklch(0.577 0.245 27.325 / 40%)" }}
+        className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed p-10 text-center"
+        style={{
+          borderColor: isAuthError ? "oklch(0.62 0.19 48 / 30%)" : "oklch(0.577 0.245 27.325 / 40%)",
+          background: "linear-gradient(135deg, oklch(0.62 0.19 48 / 4%), oklch(0.5 0.14 145 / 4%))",
+        }}
       >
-        <p className="text-sm text-destructive font-medium">
-          {error?.message ?? "Failed to load forms."}
-        </p>
+        <div>
+          <p className="text-base font-bold text-foreground">
+            {isAuthError ? "Authentication Required" : "Failed to load forms"}
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {isAuthError
+              ? "Please log in to view and manage your forms."
+              : (error?.message ?? "An error occurred while loading your forms.")}
+          </p>
+        </div>
+        {isAuthError && (
+          <Button
+            asChild
+            size="sm"
+            className="rounded-xl font-semibold text-white shadow-md hover:shadow-lg transition-all"
+            style={{
+              background: "linear-gradient(135deg, oklch(0.62 0.19 48), oklch(0.7 0.2 60))",
+              border: "none",
+            }}
+          >
+            <Link href="/login">Log In</Link>
+          </Button>
+        )}
       </div>
     )
   }
+
 
   if (forms.length === 0) {
     return (

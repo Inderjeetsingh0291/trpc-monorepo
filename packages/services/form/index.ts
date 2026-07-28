@@ -7,6 +7,7 @@ import {
     type DeleteFormInputType, deleteFormInput,
     type ToggleFormStatusInputType, toggleFormStatusInput,
     type ListPublicFormsInputType,
+    type UpdateFormSettingsInputType, updateFormSettingsInput,
 } from "./model"
 import { formFieldsTable } from "@repo/database/models/form-field"
 
@@ -32,6 +33,7 @@ class FormService {
             visibility: formsTable.visibility,
             expiresAt: formsTable.expiresAt,
             maxResponses: formsTable.maxResponses,
+            layout: formsTable.layout,
             createdAt: formsTable.createdAt,
         })
 
@@ -54,6 +56,7 @@ class FormService {
             visibility: formsTable.visibility,
             expiresAt: formsTable.expiresAt,
             maxResponses: formsTable.maxResponses,
+            layout: formsTable.layout,
             createdAt: formsTable.createdAt,
         })
         .from(formsTable)
@@ -74,6 +77,8 @@ class FormService {
                 visibility: formsTable.visibility,
                 expiresAt: formsTable.expiresAt,
                 maxResponses: formsTable.maxResponses,
+                password: formsTable.password,
+                layout: formsTable.layout,
                 createdAt: formsTable.createdAt,
                 updatedAt: formsTable.updatedAt,
             },
@@ -89,7 +94,7 @@ class FormService {
             throw Error(`Form not found with id ${formId}`)
         }
 
-        const { id, title, description, isActive, visibility, expiresAt, maxResponses, createdAt, updatedAt } = firstRow.form
+        const { id, title, description, isActive, visibility, expiresAt, maxResponses, password, layout, createdAt, updatedAt } = firstRow.form
         const fields = rows
             .filter(r => r.field !== null)
             .map(r => r.field as NonNullable<typeof r.field>)
@@ -103,6 +108,8 @@ class FormService {
                 visibility,
                 expiresAt,
                 maxResponses,
+                password,
+                layout,
                 createdAt,
                 updatedAt,
                 fields
@@ -118,8 +125,8 @@ class FormService {
             updatedBy: userId,
         }
 
-        // Only update visibility when publishing (isActive = true) and a value is provided
-        if (isActive && visibility) {
+        // Update visibility when provided
+        if (visibility) {
             updateValues.visibility = visibility
         }
 
@@ -140,6 +147,38 @@ class FormService {
         return { formId: updatedForm.id, isActive: updatedForm.isActive, visibility: updatedForm.visibility }
     }
 
+    public async updateFormSettings(payload: UpdateFormSettingsInputType) {
+        const { formId, userId, title, description, layout, expiresAt, maxResponses, password } = await updateFormSettingsInput.parseAsync(payload)
+
+        const updateValues: Partial<typeof formsTable.$inferInsert> = {
+            updatedBy: userId,
+        }
+
+        if (title !== undefined) updateValues.title = title
+        if (description !== undefined) updateValues.description = description ?? null
+        if (layout !== undefined) updateValues.layout = layout
+        if (expiresAt !== undefined) updateValues.expiresAt = expiresAt ?? null
+        if (maxResponses !== undefined) updateValues.maxResponses = maxResponses ?? null
+        if (password !== undefined) updateValues.password = password ? password : null
+
+        const result = await db.update(formsTable)
+            .set(updateValues)
+            .where(and(eq(formsTable.id, formId), eq(formsTable.createdBy, userId)))
+            .returning({
+                layout: formsTable.layout,
+                expiresAt: formsTable.expiresAt,
+                maxResponses: formsTable.maxResponses,
+                password: formsTable.password,
+            })
+
+        const updatedForm = result[0]
+        if (!updatedForm) {
+            throw Error(`Form not found or you are not authorized to update this form.`)
+        }
+
+        return { success: true, layout: updatedForm.layout }
+    }
+
     public async listPublicForms(_payload: ListPublicFormsInputType) {
         const forms = await db.select({
             id: formsTable.id,
@@ -149,6 +188,7 @@ class FormService {
             visibility: formsTable.visibility,
             expiresAt: formsTable.expiresAt,
             maxResponses: formsTable.maxResponses,
+            layout: formsTable.layout,
             createdAt: formsTable.createdAt,
         })
         .from(formsTable)

@@ -9,7 +9,9 @@ import {
 } from "./model"
 
 function generateLabelKey(label: string) {
-    return label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    const base = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    const uniqueSuffix = Math.random().toString(36).substring(2, 7);
+    return `${base || 'field'}_${uniqueSuffix}`;
 }
 
 class FormFieldService {
@@ -106,6 +108,23 @@ class FormFieldService {
         return { field }
     }
 
+    public async reorderFields(payload: { fieldIds: string[]; updatedBy: string }) {
+        const { fieldIds, updatedBy } = payload;
+        await db.transaction(async (tx) => {
+            for (let i = 0; i < fieldIds.length; i++) {
+                await tx.update(formFieldsTable)
+                    .set({ index: (-(i + 1)).toFixed(2), updatedBy })
+                    .where(eq(formFieldsTable.id, fieldIds[i]!))
+            }
+            for (let i = 0; i < fieldIds.length; i++) {
+                await tx.update(formFieldsTable)
+                    .set({ index: (i + 1).toFixed(2), updatedBy })
+                    .where(eq(formFieldsTable.id, fieldIds[i]!))
+            }
+        });
+        return { success: true };
+    }
+
     public async getFieldsByFormId(payload: GetFieldsByFormIdInputType) {
         const { formId } = await getFieldsByFormIdInput.parseAsync(payload)
 
@@ -116,6 +135,7 @@ class FormFieldService {
 
         return { fields }
     }
+
 }
 
 export default FormFieldService

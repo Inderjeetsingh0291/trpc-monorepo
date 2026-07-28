@@ -22,6 +22,7 @@ export const fieldTypeEnum = pgEnum("field_type_enum", [
     "phone",
     "textarea",
     "select",
+    "multi_select",
     "radio",
     "checkbox",
     "YES_NO",
@@ -30,6 +31,7 @@ export const fieldTypeEnum = pgEnum("field_type_enum", [
     "rating",
     "date"
 ]);
+
 
 export const formFieldsTable = pgTable("form_fields", {
     id: uuid("id").primaryKey().defaultRandom(),

@@ -23,6 +23,7 @@ interface PreviewModalProps {
   onClose: () => void;
   formTitle?: string;
   fields: PreviewField[] | undefined;
+  layout?: string;
 }
 
 type Device = "desktop" | "tablet" | "mobile";
@@ -34,7 +35,7 @@ const DEVICE_SIZES = {
   mobile: { w: 375, h: 680, label: "Mobile", icon: "phone_iphone" },
 };
 
-export function PreviewModal({ open, onClose, formTitle, fields }: PreviewModalProps) {
+export function PreviewModal({ open, onClose, formTitle, fields, layout = "step" }: PreviewModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [device, setDevice] = useState<Device>("desktop");
   const [zoom, setZoom] = useState<Zoom>(0.75);
@@ -131,9 +132,9 @@ export function PreviewModal({ open, onClose, formTitle, fields }: PreviewModalP
             <div className="text-slate-900 p-4 font-mono border border-green-500 bg-black/5">Terminal theme preview unavailable</div>
           ) : (
             <>
-              {device === "desktop" && <DesktopFrame progress={progress}><FormContent field={currentField} fields={fields} step={currentStep} total={totalSteps} onNext={handleNext} onBack={handleBack} /></DesktopFrame>}
-              {device === "tablet" && <TabletFrame><FormContent field={currentField} fields={fields} step={currentStep} total={totalSteps} onNext={handleNext} onBack={handleBack} /></TabletFrame>}
-              {device === "mobile" && <MobileFrame progress={progress}><FormContent field={currentField} fields={fields} step={currentStep} total={totalSteps} onNext={handleNext} onBack={handleBack} /></MobileFrame>}
+              {device === "desktop" && <DesktopFrame progress={progress}><FormContent field={currentField} fields={fields} step={currentStep} total={totalSteps} onNext={handleNext} onBack={handleBack} layout={layout} /></DesktopFrame>}
+              {device === "tablet" && <TabletFrame><FormContent field={currentField} fields={fields} step={currentStep} total={totalSteps} onNext={handleNext} onBack={handleBack} layout={layout} /></TabletFrame>}
+              {device === "mobile" && <MobileFrame progress={progress}><FormContent field={currentField} fields={fields} step={currentStep} total={totalSteps} onNext={handleNext} onBack={handleBack} layout={layout} /></MobileFrame>}
             </>
           )}
         </div>
@@ -203,7 +204,7 @@ function MobileFrame({ children, progress }: { children: React.ReactNode; progre
 
 // ─── Form Content ─────────────────────────────────────────
 
-function FormContent({ field, fields, step, total, onNext, onBack }: { field: PreviewField | undefined; fields: PreviewField[] | undefined; step: number; total: number; onNext: () => void; onBack: () => void }) {
+function FormContent({ field, fields, step, total, onNext, onBack, layout }: { field: PreviewField | undefined; fields: PreviewField[] | undefined; step: number; total: number; onNext: () => void; onBack: () => void; layout: string }) {
   if (!fields || fields.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -222,6 +223,29 @@ function FormContent({ field, fields, step, total, onNext, onBack }: { field: Pr
           <span className="material-symbols-outlined text-[40px] text-green-500 mb-2 block">task_alt</span>
           <p className="text-[16px] font-medium text-slate-900">Thank you!</p>
           <p className="text-[12px] text-slate-500 mt-1">Response submitted successfully.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (layout === "list") {
+    return (
+      <div className="flex flex-col h-full px-8 py-8 overflow-y-auto">
+        <div className="flex-1 flex flex-col gap-10">
+          {fields.map((f, idx) => (
+            <div key={f.id} className="pb-8 border-b border-slate-100 last:border-0 last:pb-0">
+              <h2 className="text-[20px] font-semibold text-slate-900 mb-2 leading-tight" style={{ fontFamily: "var(--font-geist-sans)", letterSpacing: "-0.01em" }}>
+                {idx + 1}. {f.label}{f.required && <span className="text-red-500 ml-1">*</span>}
+              </h2>
+              {f.description && <p className="text-[13px] text-slate-500 mb-4">{f.description}</p>}
+              <div className="mt-4"><PreviewFieldInput field={f} /></div>
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-end pt-8 mt-8 border-t border-slate-100">
+          <button className="flex items-center gap-1 px-6 py-2.5 text-[12px] font-semibold text-white bg-orange-500 rounded-xl shadow-sm hover:brightness-110 transition-all">
+            Submit<span className="material-symbols-outlined text-[16px]">check</span>
+          </button>
         </div>
       </div>
     );

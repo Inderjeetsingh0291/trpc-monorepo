@@ -64,6 +64,20 @@
       "when": 1784056212818,
       "tag": "0008_lucky_imperial_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1784135960158,
+      "tag": "0009_chubby_tattoo",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1784658989911,
+      "tag": "0010_spooky_morbius",
+      "breakpoints": true
     }
   ]
 }

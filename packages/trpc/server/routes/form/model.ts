@@ -24,6 +24,7 @@ export const listFormsOutputModel = z.object({
         visibility: z.enum(visibilityValues).describe("Visibility mode: public or unlisted"),
         expiresAt: z.coerce.date().nullable().optional(),
         maxResponses: z.number().int().nullable().optional(),
+        layout: z.string().describe("Layout mode: step or list"),
         createdAt: z.coerce.date().nullable().describe("Creation timestamp"),
     }))
 })
@@ -37,6 +38,7 @@ const fieldTypeValues = [
     "phone",
     "textarea",
     "select",
+    "multi_select",
     "radio",
     "checkbox",
     "YES_NO",
@@ -45,6 +47,7 @@ const fieldTypeValues = [
     "rating",
     "date"
 ] as const
+
 
 const fieldOutputModel = z.object({
     id: z.string().describe("Id of the field"),
@@ -72,10 +75,27 @@ export const getFormByIdOutputModel = z.object({
         visibility: z.enum(visibilityValues).describe("Visibility mode"),
         expiresAt: z.coerce.date().nullable().optional(),
         maxResponses: z.number().int().nullable().optional(),
+        password: z.string().nullable().optional().describe("Optional password protection"),
+        layout: z.string().describe("Layout mode: step or list"),
         createdAt: z.coerce.date().nullable().describe("Creation timestamp"),
         updatedAt: z.coerce.date().nullable().describe("Update timestamp"),
         fields: z.array(fieldOutputModel).describe("Form fields")
     })
+})
+
+export const updateFormSettingsInputModel = z.object({
+    formId: z.string().uuid().describe("UUID of the form to update"),
+    title: z.string().min(1).max(255).optional().describe("Title of the form"),
+    description: z.string().max(1000).optional().nullable().describe("Description of the form"),
+    layout: z.enum(["step", "list"]).optional().describe("The layout to use for the form"),
+    expiresAt: z.coerce.date().optional().nullable().describe("Optional expiry date"),
+    maxResponses: z.number().int().optional().nullable().describe("Optional max response limit"),
+    password: z.string().max(255).optional().nullable().describe("Optional password protection"),
+})
+
+export const updateFormSettingsOutputModel = z.object({
+    success: z.boolean(),
+    layout: z.string(),
 })
 
 // --- Form Field Models ---
@@ -133,6 +153,15 @@ export const getFieldsByFormIdInputModel = z.object({
 export const getFieldsByFormIdOutputModel = z.object({
     fields: z.array(fieldOutputModel)
 })
+
+export const reorderFieldsInputModel = z.object({
+    fieldIds: z.array(z.string().uuid()).describe("Array of field IDs in target order"),
+})
+
+export const reorderFieldsOutputModel = z.object({
+    success: z.boolean(),
+})
+
 
 // --- Submission Models ---
 
@@ -199,6 +228,7 @@ export const listPublicFormsOutputModel = z.object({
         description: z.string().nullable().describe("Form description"),
         isActive: z.boolean().nullable().describe("Is active"),
         visibility: z.enum(visibilityValues).describe("Visibility"),
+        layout: z.string().describe("Layout mode: step or list"),
         createdAt: z.coerce.date().nullable().describe("Created at"),
     }))
 })

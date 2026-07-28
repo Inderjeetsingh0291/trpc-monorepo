@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { PlusIcon } from "lucide-react"
 import { toast } from "sonner"
 
@@ -21,11 +22,21 @@ import { Spinner } from "~/components/ui/spinner"
 import { useCreateForm } from "~/hooks/api/form"
 
 export function CreateFormDialog() {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [maxResponses, setMaxResponses] = useState("")
   const [expiresAt, setExpiresAt] = useState("")
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search)
+      if (params.get("create") === "true" || params.get("open") === "true") {
+        setOpen(true)
+      }
+    }
+  }, [])
 
   const { createFormAsync, isPending } = useCreateForm()
 
@@ -38,7 +49,7 @@ export function CreateFormDialog() {
     }
 
     try {
-      await createFormAsync({
+      const res = await createFormAsync({
         title: title.trim(),
         description: description.trim() || undefined,
         maxResponses: maxResponses ? parseInt(maxResponses, 10) : undefined,
@@ -50,6 +61,9 @@ export function CreateFormDialog() {
       setMaxResponses("")
       setExpiresAt("")
       setOpen(false)
+      if (res?.formId) {
+        router.push(`/dashboard/forms/${res.formId}`)
+      }
     } catch {
       toast.error("Failed to create form. Please try again.")
     }

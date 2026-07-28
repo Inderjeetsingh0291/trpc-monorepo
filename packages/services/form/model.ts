@@ -42,3 +42,16 @@ export const listPublicFormsInput = z.object({}).describe("No input required")
 
 export type ListPublicFormsInputType = z.infer<typeof listPublicFormsInput>
 
+export const updateFormSettingsInput = z.object({
+    formId: z.string().uuid().describe("UUID of the form to update"),
+    userId: z.string().uuid().describe("UUID of the user"),
+    title: z.string().min(1).max(255).optional().describe("Title of the form"),
+    description: z.string().max(1000).optional().nullable().describe("Description of the form"),
+    layout: z.enum(["step", "list"]).optional().describe("The layout to use for the form"),
+    expiresAt: z.coerce.date().optional().nullable().describe("Optional expiry date"),
+    maxResponses: z.number().int().optional().nullable().describe("Optional max response limit"),
+    password: z.string().max(255).optional().nullable().describe("Optional password protection"),
+})
+
+export type UpdateFormSettingsInputType = z.infer<typeof updateFormSettingsInput>
+
