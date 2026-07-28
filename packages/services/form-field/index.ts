@@ -110,7 +110,7 @@ class FormFieldService {
 
     public async reorderFields(payload: { fieldIds: string[]; updatedBy: string }) {
         const { fieldIds, updatedBy } = payload;
-        await db.transaction(async (tx) => {
+        await db.transaction(async (tx: any) => {
             for (let i = 0; i < fieldIds.length; i++) {
                 await tx.update(formFieldsTable)
                     .set({ index: (-(i + 1)).toFixed(2), updatedBy })

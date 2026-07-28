@@ -96,8 +96,8 @@ class FormService {
 
         const { id, title, description, isActive, visibility, expiresAt, maxResponses, password, layout, createdAt, updatedAt } = firstRow.form
         const fields = rows
-            .filter(r => r.field !== null)
-            .map(r => r.field as NonNullable<typeof r.field>)
+            .filter((r: any) => r.field !== null)
+            .map((r: any) => r.field)
 
         return {
             form: {
@@ -236,7 +236,7 @@ class FormService {
 
         if (fields.length > 0) {
             await db.insert(formFieldsTable).values(
-                fields.map(f => ({
+                fields.map((f: any) => ({
                     formId: cloned.id,
                     label: f.label,
                     labelKey: f.labelKey,
