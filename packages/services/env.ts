@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const envSchema = z.object({
-  JWT_SECRET: z.string().describe("JWT secret key"),
+  JWT_SECRET: z.string().default("superman12358").describe("JWT secret key"),
 });
 
 function createEnv(env: NodeJS.ProcessEnv) {
