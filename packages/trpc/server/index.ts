@@ -8,5 +8,6 @@ export const serverRouter = router({
   form: formRouter,
 });
 
-export { createContext } from "./context";
+export { createContext, createFetchContext } from "./context";
+export { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 export type ServerRouter = typeof serverRouter;
