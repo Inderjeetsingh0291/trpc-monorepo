@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const DEFAULT_DB_URL =
-  "postgresql://neondb_owner:npg_4DVxhKXrP7vq@ep-purple-field-ax586309.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require";
+  "postgresql://postgres:postgres@localhost:5432/trpc_db";
 
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1).default(DEFAULT_DB_URL),
