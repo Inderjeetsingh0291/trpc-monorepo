@@ -55,24 +55,23 @@ export function PreviewModal({ open, onClose, formTitle, fields, layout = "step"
   return (
     <div className="fixed inset-0 z-[100] flex flex-col" style={{ background: "radial-gradient(ellipse at 50% 30%, #f8fafc 0%, #cbd5e1 100%)" }}>
       {/* Top Bar */}
-      <div className="h-12 flex items-center justify-between px-4 border-b border-slate-200 bg-white/80 backdrop-blur-md shrink-0 shadow-sm">
+      <div className="h-12 flex items-center justify-between px-2 md:px-4 border-b border-slate-200 bg-white/80 backdrop-blur-md shrink-0 shadow-sm overflow-x-auto gap-2 scrollbar-none">
         {/* Left: title */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 shrink-0">
           <span className="material-symbols-outlined text-[16px] text-orange-500">visibility</span>
           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700" style={{ fontFamily: "var(--font-geist-mono)" }}>
             Preview
           </span>
-          <span className="text-[10px] text-slate-400">—</span>
-          <span className="text-[11px] text-slate-600" style={{ fontFamily: "var(--font-geist-mono)" }}>{formTitle ?? "Untitled"}</span>
+          <span className="text-[10px] text-slate-400 font-normal truncate max-w-[100px] sm:max-w-none">— {formTitle ?? "Untitled"}</span>
         </div>
 
         {/* Center: Device switcher */}
-        <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-slate-100 border border-slate-200">
+        <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-slate-100 border border-slate-200 shrink-0">
           {(["desktop", "tablet", "mobile"] as Device[]).map(d => (
             <button
               key={d}
               onClick={() => setDevice(d)}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-medium transition-all"
+              className="flex items-center gap-1 px-2 sm:px-3 py-1 rounded-md text-[10px] font-medium transition-all"
               style={{
                 fontFamily: "var(--font-geist-mono)",
                 background: device === d ? "white" : "transparent",
@@ -82,15 +81,15 @@ export function PreviewModal({ open, onClose, formTitle, fields, layout = "step"
               }}
             >
               <span className="material-symbols-outlined text-[14px]">{DEVICE_SIZES[d].icon}</span>
-              {DEVICE_SIZES[d].label}
+              <span className="hidden sm:inline">{DEVICE_SIZES[d].label}</span>
             </button>
           ))}
         </div>
 
         {/* Right: controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0">
           {/* Theme selector */}
-          <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 border border-slate-200">
+          <div className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 border border-slate-200">
             {THEMES.slice(0, 6).map((t: { id: string, label: string, color: string }) => (
               <button
                 key={t.id}
@@ -102,7 +101,7 @@ export function PreviewModal({ open, onClose, formTitle, fields, layout = "step"
             ))}
           </div>
           {/* Zoom */}
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200">
+          <div className="hidden md:flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200">
             {([0.75, 1, 1.25] as Zoom[]).map(z => (
               <button
                 key={z}
@@ -115,11 +114,11 @@ export function PreviewModal({ open, onClose, formTitle, fields, layout = "step"
             ))}
           </div>
           {/* Restart */}
-          <button onClick={handleReset} className="p-1.5 rounded-md hover:bg-slate-100 transition-colors" title="Restart">
+          <button onClick={handleReset} className="p-1 rounded-md hover:bg-slate-100 transition-colors" title="Restart">
             <span className="material-symbols-outlined text-[16px] text-slate-500 hover:text-orange-500">refresh</span>
           </button>
           {/* Close */}
-          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-slate-100 transition-colors" title="Close">
+          <button onClick={onClose} className="p-1 rounded-md hover:bg-slate-100 transition-colors" title="Close">
             <span className="material-symbols-outlined text-[16px] text-slate-500">close</span>
           </button>
         </div>

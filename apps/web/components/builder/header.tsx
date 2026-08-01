@@ -95,13 +95,13 @@ export function BuilderHeader({
       </div>
 
       {/* Center: Tabs */}
-      <div className="flex items-center gap-3 md:gap-6">
-        <span className="text-[12px] font-medium text-orange-500 border-b-2 border-orange-500 pb-1" style={{ fontFamily: "var(--font-geist-mono)" }}>
+      <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto whitespace-nowrap scrollbar-none py-1 max-w-[45vw] sm:max-w-none">
+        <span className="text-[12px] font-medium text-orange-500 border-b-2 border-orange-500 pb-1 cursor-pointer shrink-0" style={{ fontFamily: "var(--font-geist-mono)" }}>
           Builder
         </span>
         <button
           onClick={onPreview}
-          className="text-[12px] font-medium text-muted-foreground hover:text-orange-500 pb-1 transition-all"
+          className="text-[12px] font-medium text-muted-foreground hover:text-orange-500 pb-1 transition-all shrink-0"
           style={{ fontFamily: "var(--font-geist-mono)" }}
         >
           Preview
@@ -109,7 +109,7 @@ export function BuilderHeader({
         {formId && (
           <a
             href={`/dashboard/forms/${formId}/submissions`}
-            className="text-[12px] font-medium text-muted-foreground hover:text-orange-500 pb-1 transition-all hidden sm:inline-block"
+            className="text-[12px] font-medium text-muted-foreground hover:text-orange-500 pb-1 transition-all shrink-0 inline-block"
             style={{ fontFamily: "var(--font-geist-mono)" }}
           >
             Responses

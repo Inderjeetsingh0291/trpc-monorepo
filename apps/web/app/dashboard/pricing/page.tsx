@@ -36,7 +36,7 @@ const CONTENT = {
         "Custom branding",
         "Analytics & insights",
       ],
-      cta: { label: "Upgrade to Pro", href: "/pricing" },
+      cta: { label: "Comming soon", href: "/pricing" },
       highlight: true,
     },
     {

@@ -416,6 +416,16 @@ export function FormsTable() {
                           >
                             <ArchiveIcon className="size-4" />
                           </Button>
+                          {/* Delete Form */}
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => setDeleteFormId(form.id)}
+                            className="rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            title="Delete Form"
+                          >
+                            <Trash2Icon className="size-4" />
+                          </Button>
                         </>
                       ) : (
                         <>

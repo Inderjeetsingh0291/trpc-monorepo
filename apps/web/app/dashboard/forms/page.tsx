@@ -21,6 +21,7 @@ const templates = [
     gradient: "from-[oklch(0.45_0.14_260)] to-[oklch(0.55_0.16_280)]",
     bg: "oklch(0.45 0.14 260 / 10%)",
     iconColor: "oklch(0.45 0.14 260)",
+    url: "https://makeforms-anxim620l-inderjeet-singh-s-projects3.vercel.app/form/443ab44c-5be8-4c3f-9c75-05f1cce2902e",
     dashed: false,
   },
   {
@@ -30,6 +31,7 @@ const templates = [
     gradient: "from-[oklch(0.5_0.14_145)] to-[oklch(0.6_0.14_160)]",
     bg: "oklch(0.5 0.14 145 / 10%)",
     iconColor: "oklch(0.5 0.14 145)",
+    url: "https://makeforms-anxim620l-inderjeet-singh-s-projects3.vercel.app/form/035c6430-b79b-467d-aaa7-d2d2db448d02",
     dashed: false,
   },
 ]
@@ -119,6 +121,8 @@ export default function FormsPage() {
                 onClick={() => {
                   if (t.label === "Blank Form") {
                     document.getElementById("create-form-button")?.click()
+                  } else if (t.url) {
+                    window.open(t.url, "_blank")
                   }
                 }}
                 className="relative group overflow-hidden rounded-2xl cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
