@@ -192,30 +192,34 @@
 .deco-nav-links a:hover { color: var(--deco-gold-light); }
 .deco-nav-links a:hover::after { width: 100%; }
 @media (min-width: 768px) { .deco-nav-links { display: flex; } }
-.deco-nav-actions { display: flex; align-items: center; gap: 0.35rem; }
+.deco-nav-actions { display: flex; align-items: center; gap: 0.35rem; flex-shrink: 0; }
 @media (min-width: 640px) { .deco-nav-actions { gap: 0.75rem; } }
-.deco-btn-ghost { font-weight: 600 !important; color: var(--deco-champagne-dim) !important; letter-spacing: 0.04em; padding: 0 0.6rem !important; }
+.deco-btn-ghost { font-weight: 600 !important; color: var(--deco-champagne-dim) !important; letter-spacing: 0.04em; padding: 0 0.5rem !important; font-size: 0.775rem !important; white-space: nowrap !important; height: 2.1rem !important; }
 .deco-btn-ghost:hover { color: var(--deco-gold-light) !important; background: rgba(224, 123, 26, 0.1) !important; }
-.deco-btn-primary { font-weight: 700 !important; background: linear-gradient(135deg, var(--deco-gold), var(--deco-gold-dim)) !important; color: #ffffff !important; border: none !important; letter-spacing: 0.04em; box-shadow: 0 2px 18px rgba(224, 123, 26, 0.35); transition: all 0.3s var(--deco-transition) !important; padding: 0 0.85rem !important; }
+.deco-btn-primary { font-weight: 700 !important; background: linear-gradient(135deg, var(--deco-gold), var(--deco-gold-dim)) !important; color: #ffffff !important; border: none !important; letter-spacing: 0.04em; box-shadow: 0 2px 18px rgba(224, 123, 26, 0.35); transition: all 0.3s var(--deco-transition) !important; padding: 0 0.75rem !important; font-size: 0.775rem !important; white-space: nowrap !important; height: 2.1rem !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; }
 .deco-btn-primary:hover { box-shadow: 0 4px 28px rgba(224, 123, 26, 0.55) !important; transform: translateY(-1px); }
 
 /* Hero Section */
-.deco-hero { position: relative; overflow: hidden; padding: 7rem 0 6rem; display: flex; align-items: center; justify-content: center; min-height: 85vh; background: radial-gradient(ellipse 80% 80% at 50% 20%, rgba(224, 123, 26, 0.12), transparent); }
+.deco-hero { position: relative; overflow: hidden; padding: 5rem 0 4rem; display: flex; align-items: center; justify-content: center; min-height: 85vh; background: radial-gradient(ellipse 80% 80% at 50% 20%, rgba(224, 123, 26, 0.12), transparent); }
+@media (min-width: 640px) { .deco-hero { padding: 7rem 0 6rem; } }
 .deco-sunburst { position: absolute; top: 50%; left: 50%; width: 900px; height: 900px; transform: translate(-50%, -50%); color: var(--deco-gold); pointer-events: none; animation: deco-spin 120s linear infinite; will-change: transform; opacity: 0.7; }
 .deco-cta-sunburst { width: 700px; height: 700px; opacity: 0.5; }
 @keyframes deco-spin { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
 .deco-hero-overlay { position: absolute; inset: 0; background: radial-gradient(circle at 50% 80%, rgba(46, 171, 104, 0.12), transparent 60%); pointer-events: none; }
-.deco-hero-content { position: relative; z-index: 2; text-align: center; max-width: 56rem; margin: 0 auto; padding: 0 1.5rem; }
+.deco-hero-content { position: relative; z-index: 2; text-align: center; max-width: 56rem; margin: 0 auto; padding: 0 1rem; }
 .deco-hero-fan { width: 160px; height: 80px; margin: 0 auto 2rem; color: var(--deco-gold-light); opacity: 0.65; }
 .deco-pill { display: inline-flex; align-items: center; gap: 0.5rem; border-radius: 9999px; border: 1px solid var(--deco-border-strong); background: rgba(224, 123, 26, 0.1); padding: 0.5rem 1.25rem; font-size: 0.8rem; font-weight: 600; color: var(--deco-gold-light); margin-bottom: 2.5rem; backdrop-filter: blur(8px); letter-spacing: 0.04em; }
-.deco-hero-title { font-family: var(--deco-font-display); font-size: clamp(2.5rem, 7vw, 5.5rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.01em; color: var(--deco-champagne); margin-bottom: 1.5rem; text-shadow: 0 4px 30px rgba(0, 0, 0, 0.4); }
+.deco-hero-title { font-family: var(--deco-font-display); font-size: clamp(2.2rem, 7vw, 5.5rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.01em; color: var(--deco-champagne); margin-bottom: 1.5rem; text-shadow: 0 4px 30px rgba(0, 0, 0, 0.4); }
 .deco-hero-accent { background: linear-gradient(135deg, var(--deco-gold-light), var(--deco-gold), var(--deco-emerald-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-.deco-hero-subtitle { font-size: 1.15rem; line-height: 1.7; color: var(--deco-champagne-dim); max-width: 38rem; margin: 0 auto 3rem; }
-.deco-hero-actions { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
-@media (min-width: 640px) { .deco-hero-actions { flex-direction: row; justify-content: center; } }
-.deco-btn-hero-primary { font-family: var(--deco-font-display) !important; font-weight: 700 !important; font-size: 1.05rem !important; height: 3.5rem !important; padding: 0 2.5rem !important; border-radius: 0.5rem !important; background: linear-gradient(135deg, var(--deco-gold-light), var(--deco-gold-dim)) !important; color: #ffffff !important; border: none !important; box-shadow: 0 4px 30px rgba(224, 123, 26, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2); transition: all 0.4s var(--deco-transition) !important; letter-spacing: 0.03em; }
+.deco-hero-subtitle { font-size: 1rem; line-height: 1.6; color: var(--deco-champagne-dim); max-width: 38rem; margin: 0 auto 2.5rem; }
+@media (min-width: 640px) { .deco-hero-subtitle { font-size: 1.15rem; line-height: 1.7; margin-bottom: 3rem; } }
+.deco-hero-actions { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; width: 100%; }
+@media (min-width: 640px) { .deco-hero-actions { flex-direction: row; justify-content: center; gap: 1rem; } }
+.deco-btn-hero-primary { font-family: var(--deco-font-display) !important; font-weight: 700 !important; font-size: 0.95rem !important; height: 3.25rem !important; padding: 0 1.5rem !important; border-radius: 0.5rem !important; background: linear-gradient(135deg, var(--deco-gold-light), var(--deco-gold-dim)) !important; color: #ffffff !important; border: none !important; box-shadow: 0 4px 30px rgba(224, 123, 26, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2); transition: all 0.4s var(--deco-transition) !important; letter-spacing: 0.03em; width: 100%; max-width: 320px; }
+@media (min-width: 640px) { .deco-btn-hero-primary { font-size: 1.05rem !important; height: 3.5rem !important; padding: 0 2.5rem !important; width: auto; max-width: none; } }
 .deco-btn-hero-primary:hover { box-shadow: 0 6px 45px rgba(224, 123, 26, 0.65) !important; transform: translateY(-2px); }
-.deco-btn-hero-outline { font-weight: 700 !important; font-size: 1.05rem !important; height: 3.5rem !important; padding: 0 2.5rem !important; border-radius: 0.5rem !important; background: transparent !important; color: var(--deco-champagne) !important; border: 1.5px solid var(--deco-border-strong) !important; transition: all 0.4s var(--deco-transition) !important; }
+.deco-btn-hero-outline { font-weight: 700 !important; font-size: 0.95rem !important; height: 3.25rem !important; padding: 0 1.5rem !important; border-radius: 0.5rem !important; background: transparent !important; color: var(--deco-champagne) !important; border: 1.5px solid var(--deco-border-strong) !important; transition: all 0.4s var(--deco-transition) !important; width: 100%; max-width: 320px; }
+@media (min-width: 640px) { .deco-btn-hero-outline { font-size: 1.05rem !important; height: 3.5rem !important; padding: 0 2.5rem !important; width: auto; max-width: none; } }
 .deco-btn-hero-outline:hover { background: rgba(224, 123, 26, 0.12) !important; border-color: var(--deco-gold-light) !important; color: var(--deco-gold-light) !important; }
 
 /* Geometric Border Motif */

@@ -201,7 +201,7 @@ export default function Home() {
             </Link>
             <Link href="/login">
               <Button className="deco-btn-primary">
-                Get Started <ArrowRight className="ml-2 size-4" />
+                Get Started <ArrowRight className="ml-1 size-3.5 sm:ml-2 sm:size-4 shrink-0" />
               </Button>
             </Link>
           </div>
