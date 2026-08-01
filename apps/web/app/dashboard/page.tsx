@@ -1,20 +1,19 @@
-import { ChartAreaInteractive } from "~/components/chart-area-interactive"
-import { DataTable } from "~/components/data-table"
+"use client"
+
 import { SectionCards } from "~/components/section-cards"
 import {
   IconPlus,
   IconForms,
   IconArrowRight,
   IconActivity,
-  IconBrandGithub,
   IconClock,
   IconFileText,
   IconCheck,
   IconUsers,
 } from "@tabler/icons-react"
 import Link from "next/link"
-
-import data from "./data.json"
+import { useGetDashboardStats } from "~/hooks/api/form"
+import { Skeleton } from "~/components/ui/skeleton"
 import PricingPage from "./pricing/page"
 
 /* ─── Quick Action Card ─── */
@@ -23,7 +22,6 @@ function QuickAction({
   icon: Icon,
   label,
   desc,
-  accent,
   gradient,
 }: {
   href: string
@@ -54,32 +52,52 @@ function QuickAction({
   )
 }
 
-/* ─── Activity Item ─── */
-function ActivityItem({
-  icon: Icon,
-  title,
-  time,
-  accent,
-}: {
-  icon: React.ElementType
-  title: string
-  time: string
-  accent: string
-}) {
+/* ─── Recent Activity Feed ─── */
+function RecentActivityFeed() {
+  const { stats, isLoading } = useGetDashboardStats()
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-10 w-full rounded-lg" />
+        <Skeleton className="h-10 w-full rounded-lg" />
+        <Skeleton className="h-10 w-full rounded-lg" />
+      </div>
+    )
+  }
+
+  const recent = stats?.recentSubmissions ?? []
+
+  if (recent.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+        <IconActivity className="size-8 text-muted-foreground/40" />
+        <p className="text-sm font-medium text-muted-foreground">No recent submissions</p>
+        <p className="text-xs text-muted-foreground/70">Submissions to your forms will appear here in real-time.</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex items-start gap-3 py-3 border-b border-[oklch(0.92_0.01_75)] last:border-0">
-      <div
-        className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg"
-        style={{ background: accent.replace(")", " / 12%)"), color: accent }}
-      >
-        <Icon className="size-3.5" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm text-[oklch(0.25_0.04_30)] font-medium leading-snug">{title}</p>
-        <p className="text-xs text-[oklch(0.6_0.03_50)] mt-0.5 flex items-center gap-1">
-          <IconClock className="size-3" /> {time}
-        </p>
-      </div>
+    <div>
+      {recent.map((sub) => (
+        <div key={sub.id} className="flex items-start gap-3 py-3 border-b border-[oklch(0.92_0.01_75)] last:border-0">
+          <div
+            className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-[oklch(0.5_0.14_145)/12%] text-[oklch(0.5_0.14_145)]"
+          >
+            <IconCheck className="size-3.5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-[oklch(0.25_0.04_30)] font-medium leading-snug truncate">
+              New submission for <Link href={`/dashboard/forms/${sub.formId}/submissions`} className="font-semibold text-[oklch(0.62_0.19_48)] hover:underline">{sub.formTitle}</Link>
+            </p>
+            <p className="text-xs text-[oklch(0.6_0.03_50)] mt-0.5 flex items-center gap-1">
+              <IconClock className="size-3" />
+              {sub.createdAt ? new Date(sub.createdAt).toLocaleString() : "Just now"}
+            </p>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -130,7 +148,7 @@ export default function Page() {
               gradient="from-[oklch(0.62_0.19_48)] to-[oklch(0.7_0.2_60)]"
             />
             <QuickAction
-              href="/dashboard/forms?create=true"
+              href="/dashboard/forms"
               icon={IconPlus}
               label="Create New Form"
               desc="Build from scratch"
@@ -160,52 +178,11 @@ export default function Page() {
         <div className="rounded-2xl border border-[oklch(0.88_0.025_75)] bg-[oklch(1_0.005_80)] p-5">
           <div className="flex items-center gap-2 mb-4">
             <IconActivity className="size-4 text-[oklch(0.62_0.19_48)]" />
-            <h2 className="text-base font-bold text-[oklch(0.18_0.04_30)]">Recent Activity</h2>
+            <h2 className="text-base font-bold text-[oklch(0.18_0.04_30)]">Recent Submissions</h2>
           </div>
-          <div>
-            <ActivityItem
-              icon={IconCheck}
-              title="Contact Form received 3 new submissions"
-              time="2 minutes ago"
-              accent="oklch(0.5 0.14 145)"
-            />
-            <ActivityItem
-              icon={IconPlus}
-              title="Survey — Product Feedback was created"
-              time="1 hour ago"
-              accent="oklch(0.62 0.19 48)"
-            />
-            <ActivityItem
-              icon={IconUsers}
-              title="12 new respondents joined this week"
-              time="3 hours ago"
-              accent="oklch(0.45 0.14 260)"
-            />
-            <ActivityItem
-              icon={IconForms}
-              title="Newsletter Signup set to Public"
-              time="Yesterday"
-              accent="oklch(0.65 0.18 25)"
-            />
-            <ActivityItem
-              icon={IconBrandGithub}
-              title="API integration connected via Scalar"
-              time="2 days ago"
-              accent="oklch(0.35 0.04 30)"
-            />
-          </div>
+          <RecentActivityFeed />
         </div>
       </div>
-
-
-
-      {/* ── Chart ──
-      <div className="px-4 lg:px-6">
-        <ChartAreaInteractive />
-      </div> */}
-
-      {/* ── Data Table ── */}
-      {/* <DataTable data={data} /> */}
 
       <div className="px-4 lg:px-6">
         <PricingPage />

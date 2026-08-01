@@ -233,3 +233,47 @@ export const listPublicFormsOutputModel = z.object({
     }))
 })
 
+export const archiveFormInputModel = z.object({
+    formId: z.string().uuid().describe("UUID of the form to archive"),
+})
+
+export const archiveFormOutputModel = z.object({
+    formId: z.string().describe("Id of the archived form"),
+})
+
+export const restoreFormInputModel = z.object({
+    formId: z.string().uuid().describe("UUID of the form to restore"),
+})
+
+export const restoreFormOutputModel = z.object({
+    formId: z.string().describe("Id of the restored form"),
+})
+
+export const listArchivedFormsInputModel = z.void().describe("No input required")
+
+export const listArchivedFormsOutputModel = z.object({
+    forms: z.array(z.object({
+        id: z.string().describe("Id of the form"),
+        title: z.string().describe("Title of the form"),
+        description: z.string().nullable().describe("Description of the form"),
+        isActive: z.boolean().nullable().describe("Whether the form is published"),
+        visibility: z.enum(visibilityValues).describe("Visibility mode"),
+        createdAt: z.coerce.date().nullable().describe("Creation timestamp"),
+    }))
+})
+
+export const getDashboardStatsInputModel = z.void().describe("No input required")
+
+export const getDashboardStatsOutputModel = z.object({
+    totalForms: z.number(),
+    activeForms: z.number(),
+    totalSubmissions: z.number(),
+    recentSubmissions: z.array(z.object({
+        id: z.string(),
+        formId: z.string(),
+        formTitle: z.string(),
+        createdAt: z.coerce.date().nullable(),
+    })),
+})
+
+

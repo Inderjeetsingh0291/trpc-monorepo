@@ -1,6 +1,7 @@
 import { db, eq, count, and } from "@repo/database"
 import { formSubmissionsTable } from "@repo/database/models/form-submition"
 import { formsTable } from "@repo/database/models/form"
+import { formFieldsTable } from "@repo/database/models/form-field"
 import { usersTable } from "@repo/database/models/user"
 import { emailEnv } from "../env"
 import {
@@ -82,6 +83,7 @@ class FormSubmissionService {
                     const { title, creatorEmail } = formDetail
                     const fromEmail = emailEnv.FROM_EMAIL ?? "onboarding@resend.dev"
 
+                    // 1. Send notification to form CREATOR (existing behavior)
                     const { data, error } = await resendClient.emails.send({
                         from: `Sawaalnama <${fromEmail}>`,
                         to: creatorEmail,
@@ -99,9 +101,56 @@ class FormSubmissionService {
                     })
 
                     if (error) {
-                        console.error("Resend failed to send email:", error)
+                        console.error("Resend failed to send creator email:", error)
                     } else {
-                        console.log(`Email sent via Resend, id: ${data?.id}`)
+                        console.log(`Creator email sent via Resend, id: ${data?.id}`)
+                    }
+
+                    // 2. Send confirmation to the RESPONDENT (person who filled the form)
+                    // Find email-type fields in this form to extract respondent email
+                    const emailFields = await db.select({ id: formFieldsTable.id })
+                        .from(formFieldsTable)
+                        .where(and(
+                            eq(formFieldsTable.formId, formId),
+                            eq(formFieldsTable.type, "email")
+                        ))
+
+                    let respondentEmail: string | null = null
+                    if (emailFields.length > 0) {
+                        const emailFieldIds = new Set(emailFields.map(f => f.id))
+                        for (const v of values) {
+                            if (emailFieldIds.has(v.formFieldId) && v.value && v.value.includes("@")) {
+                                respondentEmail = v.value.trim()
+                                break
+                            }
+                        }
+                    }
+
+                    if (respondentEmail && respondentEmail !== creatorEmail) {
+                        try {
+                            const { data: rData, error: rError } = await resendClient.emails.send({
+                                from: `Sawaalnama <${fromEmail}>`,
+                                to: respondentEmail,
+                                subject: `Your response to "${title}" was recorded`,
+                                html: `
+                                    <div style="font-family:sans-serif;max-width:500px;margin:auto">
+                                      <h2 style="color:#b45309">Thank You!</h2>
+                                      <p>Hi there,</p>
+                                      <p>Your response to <strong>${title}</strong> has been successfully recorded.</p>
+                                      <p>Thank you for taking the time to fill out this form.</p>
+                                      <hr/>
+                                      <p style="color:#888;font-size:12px">Sawaalnama — Punjab Edition</p>
+                                    </div>
+                                `,
+                            })
+                            if (rError) {
+                                console.error("Resend failed to send respondent email:", rError)
+                            } else {
+                                console.log(`Respondent email sent via Resend to ${respondentEmail}, id: ${rData?.id}`)
+                            }
+                        } catch (respondentErr) {
+                            console.error("Failed to send respondent confirmation:", respondentErr)
+                        }
                     }
                 }
             }

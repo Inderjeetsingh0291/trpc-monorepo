@@ -272,10 +272,38 @@ function FormContent({ field, fields, step, total, onNext, onBack, layout }: { f
   );
 }
 
-// ─── Field Input Previews ────────────────────────────────────────
+function parsePreviewOptions(field: PreviewField): Array<{ label: string; value: string }> {
+  if (Array.isArray(field.options) && field.options.length > 0) {
+    return field.options.map((o: any) =>
+      typeof o === "string"
+        ? { label: o, value: o }
+        : { label: o.label || o.value || "", value: o.value || o.label || "" }
+    );
+  }
+  if (field.placeholder) {
+    try {
+      const parsed = JSON.parse(field.placeholder);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((o: any) =>
+          typeof o === "string"
+            ? { label: o, value: o }
+            : { label: o.label || o.value || "", value: o.value || o.label || "" }
+        );
+      }
+    } catch {
+      if (typeof field.placeholder === "string" && field.placeholder.trim()) {
+        const parts = field.placeholder.split(",").map((s: string) => s.trim()).filter(Boolean);
+        if (parts.length > 0) {
+          return parts.map((o: string) => ({ label: o, value: o }));
+        }
+      }
+    }
+  }
+  return [{ label: "Option 1", value: "opt1" }, { label: "Option 2", value: "opt2" }];
+}
 
 function PreviewFieldInput({ field }: { field: PreviewField }) {
-  const options = (field.options as Array<{ label: string; value: string }>) ?? [];
+  const options = parsePreviewOptions(field);
   switch (field.fieldType) {
     case "text": case "email": case "number": case "phone":
       return <input type={field.fieldType === "email" ? "email" : field.fieldType === "number" ? "number" : field.fieldType === "phone" ? "tel" : "text"} placeholder={field.placeholder ?? "Type your answer..."} disabled className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3.5 text-[14px] text-slate-900 shadow-sm placeholder:text-slate-400" style={{ fontFamily: "var(--font-geist-sans)" }} />;

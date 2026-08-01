@@ -2,7 +2,7 @@
   "name": "trpc-monorepo",
   "private": true,
   "scripts": {
-    "build": "dotenv -- turbo build",
+    "build": "npx turbo build",
     "dev": "dotenv -- turbo dev",
     "db:generate": "dotenv -- turbo db:generate",
     "db:migrate": "dotenv -- turbo db:migrate",

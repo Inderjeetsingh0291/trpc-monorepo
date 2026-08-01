@@ -19,6 +19,10 @@ import {
   listPublicFormsInputModel, listPublicFormsOutputModel,
   updateFormSettingsInputModel, updateFormSettingsOutputModel,
   reorderFieldsInputModel, reorderFieldsOutputModel,
+  archiveFormInputModel, archiveFormOutputModel,
+  restoreFormInputModel, restoreFormOutputModel,
+  listArchivedFormsInputModel, listArchivedFormsOutputModel,
+  getDashboardStatsInputModel, getDashboardStatsOutputModel,
 } from "./model";
 
 import { formService, formFieldService, formSubmissionService } from "@repo/services";
@@ -253,6 +257,52 @@ export const formRouter = router({
     }
   }).input(z.object({ formId: z.string().uuid() })).output(createFormOutputModel).mutation(async ({ input, ctx }) => {
     return await formService.cloneForm({ formId: input.formId, userId: ctx.user.id });
+  }),
+
+  // --- Archive / Restore / Dashboard Stats ---
+
+  archiveForm: authenticationPocedure.meta({
+    openapi: {
+      method: "POST",
+      path: getPath('/archiveForm'),
+      tags: TAGS,
+      protect: true
+    }
+  }).input(archiveFormInputModel).output(archiveFormOutputModel).mutation(async ({ input, ctx }) => {
+    return await formService.archiveForm({ formId: input.formId, userId: ctx.user.id });
+  }),
+
+  restoreForm: authenticationPocedure.meta({
+    openapi: {
+      method: "POST",
+      path: getPath('/restoreForm'),
+      tags: TAGS,
+      protect: true
+    }
+  }).input(restoreFormInputModel).output(restoreFormOutputModel).mutation(async ({ input, ctx }) => {
+    return await formService.restoreForm({ formId: input.formId, userId: ctx.user.id });
+  }),
+
+  listArchivedForms: authenticationPocedure.meta({
+    openapi: {
+      method: "GET",
+      path: getPath('/listArchivedForms'),
+      tags: TAGS,
+      protect: true
+    }
+  }).input(listArchivedFormsInputModel).output(listArchivedFormsOutputModel).query(async ({ ctx }) => {
+    return await formService.listArchivedForms({ userId: ctx.user.id });
+  }),
+
+  getDashboardStats: authenticationPocedure.meta({
+    openapi: {
+      method: "GET",
+      path: getPath('/getDashboardStats'),
+      tags: TAGS,
+      protect: true
+    }
+  }).input(getDashboardStatsInputModel).output(getDashboardStatsOutputModel).query(async ({ ctx }) => {
+    return await formService.getDashboardStats({ userId: ctx.user.id });
   }),
 
 })

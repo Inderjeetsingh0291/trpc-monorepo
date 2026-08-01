@@ -50,12 +50,17 @@ export function FormBuilder({ formId }: { formId: string }) {
     const label = countOfType > 1 ? `${formattedName} ${countOfType}` : formattedName
     const newIndex = fields ? (fields.length + 1).toFixed(2) : "1.00"
 
+    const defaultPlaceholder = (fieldType === "select" || fieldType === "multi_select" || fieldType === "radio")
+      ? JSON.stringify(["Option 1", "Option 2"])
+      : undefined;
+
     createField.mutate({
       formId,
       label,
       type: fieldType as any,
       index: newIndex,
       isRequired: false,
+      placeholder: defaultPlaceholder,
     })
 
     // On mobile, switch back to canvas tab after adding a block

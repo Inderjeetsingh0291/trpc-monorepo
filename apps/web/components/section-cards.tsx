@@ -1,49 +1,55 @@
-import { IconTrendingDown, IconTrendingUp, IconForms, IconUsers, IconChartBar, IconStar } from "@tabler/icons-react"
+"use client"
 
-const cards = [
-  {
-    label: "Total Forms",
-    value: "12",
-    change: "+3 this month",
-    trend: "up",
-    icon: IconForms,
-    accent: "oklch(0.62 0.19 48)",
-    gradient: "from-[oklch(0.62_0.19_48)] to-[oklch(0.7_0.2_60)]",
-    bg: "oklch(0.62 0.19 48 / 6%)",
-  },
-  {
-    label: "Total Submissions",
-    value: "1,234",
-    change: "+18% from last month",
-    trend: "up",
-    icon: IconChartBar,
-    accent: "oklch(0.45 0.14 260)",
-    gradient: "from-[oklch(0.45_0.14_260)] to-[oklch(0.55_0.16_280)]",
-    bg: "oklch(0.45 0.14 260 / 6%)",
-  },
-  {
-    label: "Active Forms",
-    value: "8",
-    change: "-1 deactivated",
-    trend: "down",
-    icon: IconStar,
-    accent: "oklch(0.5 0.14 145)",
-    gradient: "from-[oklch(0.5_0.14_145)] to-[oklch(0.6_0.14_160)]",
-    bg: "oklch(0.5 0.14 145 / 6%)",
-  },
-  {
-    label: "Respondents",
-    value: "456",
-    change: "+12.5% growth",
-    trend: "up",
-    icon: IconUsers,
-    accent: "oklch(0.65 0.18 25)",
-    gradient: "from-[oklch(0.65_0.18_25)] to-[oklch(0.7_0.16_40)]",
-    bg: "oklch(0.65 0.18 25 / 6%)",
-  },
-]
+import { IconTrendingDown, IconTrendingUp, IconForms, IconUsers, IconChartBar, IconStar } from "@tabler/icons-react"
+import { useGetDashboardStats } from "~/hooks/api/form"
+import { Skeleton } from "~/components/ui/skeleton"
 
 export function SectionCards() {
+  const { stats, isLoading } = useGetDashboardStats()
+
+  const cards = [
+    {
+      label: "Total Forms",
+      value: isLoading ? null : String(stats?.totalForms ?? 0),
+      change: "Active & draft forms",
+      trend: "up",
+      icon: IconForms,
+      accent: "oklch(0.62 0.19 48)",
+      gradient: "from-[oklch(0.62_0.19_48)] to-[oklch(0.7_0.2_60)]",
+      bg: "oklch(0.62 0.19 48 / 6%)",
+    },
+    {
+      label: "Total Submissions",
+      value: isLoading ? null : String(stats?.totalSubmissions ?? 0),
+      change: "Across all forms",
+      trend: "up",
+      icon: IconChartBar,
+      accent: "oklch(0.45 0.14 260)",
+      gradient: "from-[oklch(0.45_0.14_260)] to-[oklch(0.55_0.16_280)]",
+      bg: "oklch(0.45 0.14 260 / 6%)",
+    },
+    {
+      label: "Active Forms",
+      value: isLoading ? null : String(stats?.activeForms ?? 0),
+      change: "Currently accepting responses",
+      trend: "up",
+      icon: IconStar,
+      accent: "oklch(0.5 0.14 145)",
+      gradient: "from-[oklch(0.5_0.14_145)] to-[oklch(0.6_0.14_160)]",
+      bg: "oklch(0.5 0.14 145 / 6%)",
+    },
+    {
+      label: "Recent Activity",
+      value: isLoading ? null : String(stats?.recentSubmissions?.length ?? 0),
+      change: "New recent responses",
+      trend: "up",
+      icon: IconUsers,
+      accent: "oklch(0.65 0.18 25)",
+      gradient: "from-[oklch(0.65_0.18_25)] to-[oklch(0.7_0.16_40)]",
+      bg: "oklch(0.65 0.18 25 / 6%)",
+    },
+  ]
+
   return (
     <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
       {cards.map((card) => {
@@ -85,15 +91,19 @@ export function SectionCards() {
                 }`}
               >
                 <TrendIcon className="size-3" />
-                {card.trend === "up" ? "Up" : "Down"}
+                Live
               </span>
             </div>
 
             {/* Content */}
             <div className="relative z-10">
-              <p className="text-3xl font-bold tracking-tight text-[oklch(0.14_0.04_30)]">
-                {card.value}
-              </p>
+              {card.value === null ? (
+                <Skeleton className="h-9 w-20 mb-1" />
+              ) : (
+                <p className="text-3xl font-bold tracking-tight text-[oklch(0.14_0.04_30)]">
+                  {card.value}
+                </p>
+              )}
               <p className="mt-1 text-sm font-semibold text-[oklch(0.4_0.04_40)]">
                 {card.label}
               </p>

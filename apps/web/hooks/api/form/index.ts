@@ -179,3 +179,96 @@ export const useCloneForm = () => {
         isSuccess,
     }
 }
+
+export const useArchiveForm = () => {
+    const utils = trpc.useUtils();
+
+    const {
+        mutateAsync: archiveFormAsync,
+        mutate: archiveForm,
+        error,
+        isPending,
+        isError,
+        isSuccess,
+    } = trpc.form.archiveForm.useMutation({
+        onSuccess: async () => {
+            await utils.form.invalidate()
+        }
+    });
+
+    return {
+        archiveForm,
+        archiveFormAsync,
+        error,
+        isPending,
+        isError,
+        isSuccess,
+    }
+}
+
+export const useRestoreForm = () => {
+    const utils = trpc.useUtils();
+
+    const {
+        mutateAsync: restoreFormAsync,
+        mutate: restoreForm,
+        error,
+        isPending,
+        isError,
+        isSuccess,
+    } = trpc.form.restoreForm.useMutation({
+        onSuccess: async () => {
+            await utils.form.invalidate()
+        }
+    });
+
+    return {
+        restoreForm,
+        restoreFormAsync,
+        error,
+        isPending,
+        isError,
+        isSuccess,
+    }
+}
+
+export const useListArchivedForms = () => {
+    const {
+        data,
+        error,
+        isLoading,
+        isError,
+        isSuccess,
+        refetch,
+    } = trpc.form.listArchivedForms.useQuery();
+
+    return {
+        forms: data?.forms ?? [],
+        error,
+        isLoading,
+        isError,
+        isSuccess,
+        refetch,
+    }
+}
+
+export const useGetDashboardStats = () => {
+    const {
+        data,
+        error,
+        isLoading,
+        isError,
+        isSuccess,
+        refetch,
+    } = trpc.form.getDashboardStats.useQuery();
+
+    return {
+        stats: data ?? null,
+        error,
+        isLoading,
+        isError,
+        isSuccess,
+        refetch,
+    }
+}
+

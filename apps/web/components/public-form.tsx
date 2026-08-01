@@ -8,6 +8,36 @@ import { Button } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
 import { toast } from "sonner"
 
+function parseFieldOptions(field: any): Array<{ label: string; value: string }> {
+  if (Array.isArray(field?.options) && field.options.length > 0) {
+    return field.options.map((o: any) =>
+      typeof o === "string"
+        ? { label: o, value: o }
+        : { label: o.label || o.value || "", value: o.value || o.label || "" }
+    );
+  }
+  if (field?.placeholder) {
+    try {
+      const parsed = JSON.parse(field.placeholder);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((o: any) =>
+          typeof o === "string"
+            ? { label: o, value: o }
+            : { label: o.label || o.value || "", value: o.value || o.label || "" }
+        );
+      }
+    } catch {
+      if (typeof field.placeholder === "string" && field.placeholder.trim()) {
+        const parts = field.placeholder.split(",").map((s: string) => s.trim()).filter(Boolean);
+        if (parts.length > 0) {
+          return parts.map((o: string) => ({ label: o, value: o }));
+        }
+      }
+    }
+  }
+  return [];
+}
+
 export function PublicForm({ formId }: { formId: string }) {
   const router = useRouter()
   const { form, isLoading, isError, error } = useGetFormById(formId)
@@ -264,9 +294,10 @@ export function PublicForm({ formId }: { formId: string }) {
       case "radio":
       case "YES_NO":
       case "multi_select":
+        const parsedOpts = parseFieldOptions(field);
         const opts = field.type === "YES_NO" 
           ? [{label: "Yes", value: "yes"}, {label: "No", value: "no"}]
-          : options.length > 0 ? options : [{label: "Option 1", value: "opt1"}, {label: "Option 2", value: "opt2"}];
+          : parsedOpts.length > 0 ? parsedOpts : [{label: "Option 1", value: "opt1"}, {label: "Option 2", value: "opt2"}];
           
         return (
           <div className="space-y-3">

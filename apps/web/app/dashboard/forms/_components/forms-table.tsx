@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { FileTextIcon, PencilIcon, Share2Icon, ExternalLinkIcon, CopyIcon, PlusIcon, Trash2Icon, EyeIcon, EyeOffIcon, GlobeIcon, CopyPlusIcon } from "lucide-react"
+import { FileTextIcon, PencilIcon, Share2Icon, ExternalLinkIcon, CopyIcon, PlusIcon, Trash2Icon, EyeIcon, EyeOffIcon, GlobeIcon, CopyPlusIcon, ArchiveIcon, ArchiveRestoreIcon } from "lucide-react"
 import { toast } from "sonner"
 import { QRCodeSVG } from "qrcode.react"
 
@@ -25,17 +25,40 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog"
-import { useListForms, useDeleteForm, useToggleFormStatus, useCloneForm } from "~/hooks/api/form"
+import { useListForms, useDeleteForm, useToggleFormStatus, useCloneForm, useArchiveForm, useRestoreForm, useListArchivedForms } from "~/hooks/api/form"
 
 export function FormsTable() {
   const { forms, isLoading, isError, error } = useListForms()
+  const { forms: archivedForms, isLoading: archivedLoading } = useListArchivedForms()
   const { deleteFormAsync, isPending: isDeleting } = useDeleteForm()
   const { toggleFormStatusAsync, isPending: isToggling } = useToggleFormStatus()
   const { cloneFormAsync, isPending: isCloning } = useCloneForm()
+  const { archiveFormAsync, isPending: isArchiving } = useArchiveForm()
+  const { restoreFormAsync, isPending: isRestoring } = useRestoreForm()
+
+  const [activeTab, setActiveTab] = useState<"active" | "archived">("active")
   const [shareFormId, setShareFormId] = useState<string | null>(null)
   const [deleteFormId, setDeleteFormId] = useState<string | null>(null)
   const [publishFormId, setPublishFormId] = useState<string | null>(null)
   const [shareUrl, setShareUrl] = useState("")
+
+  const handleArchive = async (formId: string, title: string) => {
+    try {
+      await archiveFormAsync({ formId })
+      toast.success(`"${title}" moved to archive.`)
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to archive form.")
+    }
+  }
+
+  const handleRestore = async (formId: string, title: string) => {
+    try {
+      await restoreFormAsync({ formId })
+      toast.success(`"${title}" restored from archive.`)
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to restore form.")
+    }
+  }
 
   const handleDeleteConfirm = async () => {
     if (!deleteFormId) return
@@ -170,189 +193,263 @@ export function FormsTable() {
     )
   }
 
+  const currentForms = activeTab === "active" ? forms : archivedForms
+
   return (
     <>
-      <div
-        className="rounded-2xl overflow-hidden shadow-sm"
-        style={{
-          border: "1px solid oklch(0.88 0.025 75)",
-          background: "oklch(1 0.005 80)",
-        }}
-      >
-        <Table>
-          <TableHeader>
-            <TableRow
-              style={{
-                background: "linear-gradient(90deg, oklch(0.62 0.19 48 / 8%), oklch(0.5 0.14 145 / 5%))",
-                borderBottom: "1px solid oklch(0.88 0.025 75)",
-              }}
-            >
-              <TableHead className="font-bold text-foreground/80 py-4">Title</TableHead>
-              <TableHead className="font-bold text-foreground/80">Description</TableHead>
-              <TableHead className="font-bold text-foreground/80">Status</TableHead>
-              <TableHead className="font-bold text-foreground/80">Visibility</TableHead>
-              <TableHead className="font-bold text-foreground/80">Created</TableHead>
-              <TableHead className="text-right font-bold text-foreground/80">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {forms.map((form, idx) => (
-              <TableRow
-                key={form.id}
-                className="transition-colors hover:bg-[oklch(0.62_0.19_48)/5%] group"
-                style={{ borderBottom: "1px solid oklch(0.88 0.025 75)" }}
-              >
-                <TableCell className="font-semibold py-4">
-                  <Link
-                    href={`/dashboard/forms/${form.id}`}
-                    className="hover:underline underline-offset-4 transition-colors"
-                    style={{ color: "oklch(0.55 0.16 50)" }}
-                  >
-                    {form.title}
-                  </Link>
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {form.description || <span className="text-muted-foreground/40">—</span>}
-                </TableCell>
-                <TableCell>
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                      form.isActive
-                        ? "text-[oklch(0.5_0.14_145)] bg-[oklch(0.5_0.14_145)/10%] border border-[oklch(0.5_0.14_145)/25%]"
-                        : "text-gray-500 bg-gray-100 border border-gray-200"
-                    }`}
-                  >
-                    <span className={`size-1.5 rounded-full ${form.isActive ? "bg-[oklch(0.5_0.14_145)]" : "bg-gray-400"}`} />
-                    {form.isActive ? "Published" : "Draft"}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold cursor-pointer transition-colors ${
-                      form.visibility === "public"
-                        ? "text-[oklch(0.62_0.19_48)] bg-[oklch(0.62_0.19_48)/10%] border border-[oklch(0.62_0.19_48)/25%] hover:bg-[oklch(0.62_0.19_48)/15%]"
-                        : "text-gray-600 bg-gray-100 border border-gray-200 hover:bg-gray-200"
-                    }`}
-                    onClick={() => form.isActive && setPublishFormId(form.id)}
-                    title={form.isActive ? "Click to change visibility" : "Publish form first to set visibility"}
-                  >
-                    {form.visibility === "public"
-                      ? <><GlobeIcon className="size-3" /> Public</>
-                      : <><EyeOffIcon className="size-3" /> Unlisted</>
-                    }
-                  </span>
-                </TableCell>
-                <TableCell className="text-muted-foreground text-sm">
-                  {form.createdAt
-                    ? new Date(form.createdAt).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })
-                    : "—"}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
-                    {/* Publish / Unpublish Toggle */}
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => handlePublishToggle(form.id, form.isActive, form.visibility)}
-                      disabled={isToggling}
-                      className={`rounded-lg ${
-                        form.isActive
-                          ? "text-[oklch(0.5_0.14_145)] hover:text-[oklch(0.5_0.14_145)] hover:bg-[oklch(0.5_0.14_145)/10%]"
-                          : "text-muted-foreground hover:text-[oklch(0.5_0.14_145)] hover:bg-[oklch(0.5_0.14_145)/10%]"
-                      }`}
-                      title={form.isActive ? "Unpublish Form" : "Publish Form"}
-                    >
-                      {form.isActive ? <EyeIcon className="size-4" /> : <EyeOffIcon className="size-4" />}
-                      <span className="sr-only">{form.isActive ? "Unpublish" : "Publish"} {form.title}</span>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => setShareFormId(form.id)}
-                      className="rounded-lg text-muted-foreground hover:text-[oklch(0.55_0.16_50)] hover:bg-[oklch(0.62_0.19_48)/10%]"
-                      title="Share Form"
-                    >
-                      <Share2Icon className="size-4" />
-                      <span className="sr-only">Share {form.title}</span>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      asChild
-                      className="rounded-lg text-muted-foreground hover:text-[oklch(0.55_0.16_50)] hover:bg-[oklch(0.62_0.19_48)/10%]"
-                      title="View Submissions"
-                    >
-                      <Link href={`/dashboard/forms/${form.id}/submissions`}>
-                        <FileTextIcon className="size-4" />
-                        <span className="sr-only">Submissions {form.title}</span>
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      asChild
-                      className="rounded-lg text-muted-foreground hover:text-[oklch(0.55_0.16_50)] hover:bg-[oklch(0.62_0.19_48)/10%]"
-                      title="Preview Form"
-                    >
-                      <Link href={`/form/${form.id}`} target="_blank">
-                        <ExternalLinkIcon className="size-4" />
-                        <span className="sr-only">Preview {form.title}</span>
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      asChild
-                      className="rounded-lg text-muted-foreground hover:text-[oklch(0.55_0.16_50)] hover:bg-[oklch(0.62_0.19_48)/10%]"
-                      title="Edit Form"
-                    >
-                      <Link href={`/dashboard/forms/${form.id}`}>
-                        <PencilIcon className="size-4" />
-                        <span className="sr-only">Edit {form.title}</span>
-                      </Link>
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => setDeleteFormId(form.id)}
-                      className="rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                      title="Delete Form"
-                    >
-                      <Trash2Icon className="size-4" />
-                      <span className="sr-only">Delete {form.title}</span>
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={async () => {
-                        try {
-                          await cloneFormAsync({ formId: form.id })
-                          toast.success(`"${form.title}" cloned as draft!`)
-                        } catch (err: any) {
-                          toast.error(err?.message ?? "Failed to clone form.")
-                        }
-                      }}
-                      disabled={isCloning}
-                      className="rounded-lg text-muted-foreground hover:text-[oklch(0.62_0.19_48)] hover:bg-[oklch(0.62_0.19_48)/10%]"
-                      title="Clone Form"
-                    >
-                      <CopyPlusIcon className="size-4" />
-                      <span className="sr-only">Clone {form.title}</span>
-                    </Button>
-
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      {/* Tabs */}
+      <div className="flex items-center gap-2 mb-2">
+        <button
+          onClick={() => setActiveTab("active")}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+            activeTab === "active"
+              ? "text-white shadow-md"
+              : "text-muted-foreground hover:bg-muted"
+          }`}
+          style={activeTab === "active" ? { background: "linear-gradient(135deg, oklch(0.62 0.19 48), oklch(0.7 0.2 60))" } : undefined}
+        >
+          Active Forms ({forms.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("archived")}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            activeTab === "archived"
+              ? "text-white shadow-md"
+              : "text-muted-foreground hover:bg-muted"
+          }`}
+          style={activeTab === "archived" ? { background: "linear-gradient(135deg, oklch(0.62 0.19 48), oklch(0.7 0.2 60))" } : undefined}
+        >
+          <ArchiveIcon className="size-3.5" />
+          Archived ({archivedForms.length})
+        </button>
       </div>
+
+      {currentForms.length === 0 ? (
+        <div
+          className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed p-12 text-center"
+          style={{
+            borderColor: "oklch(0.62 0.19 48 / 30%)",
+            background: "linear-gradient(135deg, oklch(0.62 0.19 48 / 3%), oklch(0.5 0.14 145 / 3%))",
+          }}
+        >
+          <ArchiveIcon className="size-10 text-muted-foreground/40" />
+          <p className="font-semibold text-foreground">
+            {activeTab === "active" ? "No active forms" : "No archived forms"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {activeTab === "active"
+              ? "Create a new form to get started."
+              : "Forms you archive will appear here."}
+          </p>
+        </div>
+      ) : (
+        <div
+          className="rounded-2xl overflow-hidden shadow-sm"
+          style={{
+            border: "1px solid oklch(0.88 0.025 75)",
+            background: "oklch(1 0.005 80)",
+          }}
+        >
+          <Table>
+            <TableHeader>
+              <TableRow
+                style={{
+                  background: "linear-gradient(90deg, oklch(0.62 0.19 48 / 8%), oklch(0.5 0.14 145 / 5%))",
+                  borderBottom: "1px solid oklch(0.88 0.025 75)",
+                }}
+              >
+                <TableHead className="font-bold text-foreground/80 py-4">Title</TableHead>
+                <TableHead className="font-bold text-foreground/80">Description</TableHead>
+                <TableHead className="font-bold text-foreground/80">Status</TableHead>
+                <TableHead className="font-bold text-foreground/80">Visibility</TableHead>
+                <TableHead className="font-bold text-foreground/80">Created</TableHead>
+                <TableHead className="text-right font-bold text-foreground/80">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {currentForms.map((form) => (
+                <TableRow
+                  key={form.id}
+                  className="transition-colors hover:bg-[oklch(0.62_0.19_48)/5%] group"
+                  style={{ borderBottom: "1px solid oklch(0.88 0.025 75)" }}
+                >
+                  <TableCell className="font-semibold py-4">
+                    {activeTab === "active" ? (
+                      <Link
+                        href={`/dashboard/forms/${form.id}`}
+                        className="hover:underline underline-offset-4 transition-colors"
+                        style={{ color: "oklch(0.55 0.16 50)" }}
+                      >
+                        {form.title}
+                      </Link>
+                    ) : (
+                      <span className="text-muted-foreground">{form.title}</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {form.description || <span className="text-muted-foreground/40">—</span>}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                        form.isActive
+                          ? "text-[oklch(0.5_0.14_145)] bg-[oklch(0.5_0.14_145)/10%] border border-[oklch(0.5_0.14_145)/25%]"
+                          : "text-gray-500 bg-gray-100 border border-gray-200"
+                      }`}
+                    >
+                      <span className={`size-1.5 rounded-full ${form.isActive ? "bg-[oklch(0.5_0.14_145)]" : "bg-gray-400"}`} />
+                      {form.isActive ? "Published" : "Draft"}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                        activeTab === "active" && form.isActive ? "cursor-pointer" : ""
+                      } ${
+                        form.visibility === "public"
+                          ? "text-[oklch(0.62_0.19_48)] bg-[oklch(0.62_0.19_48)/10%] border border-[oklch(0.62_0.19_48)/25%]"
+                          : "text-gray-600 bg-gray-100 border border-gray-200"
+                      }`}
+                      onClick={() => activeTab === "active" && form.isActive && setPublishFormId(form.id)}
+                    >
+                      {form.visibility === "public"
+                        ? <><GlobeIcon className="size-3" /> Public</>
+                        : <><EyeOffIcon className="size-3" /> Unlisted</>
+                      }
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {form.createdAt
+                      ? new Date(form.createdAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })
+                      : "—"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      {activeTab === "active" ? (
+                        <>
+                          {/* Publish / Unpublish Toggle */}
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => handlePublishToggle(form.id, form.isActive, form.visibility)}
+                            disabled={isToggling}
+                            className={`rounded-lg ${
+                              form.isActive
+                                ? "text-[oklch(0.5_0.14_145)] hover:text-[oklch(0.5_0.14_145)] hover:bg-[oklch(0.5_0.14_145)/10%]"
+                                : "text-muted-foreground hover:text-[oklch(0.5_0.14_145)] hover:bg-[oklch(0.5_0.14_145)/10%]"
+                            }`}
+                            title={form.isActive ? "Unpublish Form" : "Publish Form"}
+                          >
+                            {form.isActive ? <EyeIcon className="size-4" /> : <EyeOffIcon className="size-4" />}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => setShareFormId(form.id)}
+                            className="rounded-lg text-muted-foreground hover:text-[oklch(0.55_0.16_50)] hover:bg-[oklch(0.62_0.19_48)/10%]"
+                            title="Share Form"
+                          >
+                            <Share2Icon className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            asChild
+                            className="rounded-lg text-muted-foreground hover:text-[oklch(0.55_0.16_50)] hover:bg-[oklch(0.62_0.19_48)/10%]"
+                            title="View Submissions"
+                          >
+                            <Link href={`/dashboard/forms/${form.id}/submissions`}>
+                              <FileTextIcon className="size-4" />
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            asChild
+                            className="rounded-lg text-muted-foreground hover:text-[oklch(0.55_0.16_50)] hover:bg-[oklch(0.62_0.19_48)/10%]"
+                            title="Preview Form"
+                          >
+                            <Link href={`/form/${form.id}`} target="_blank">
+                              <ExternalLinkIcon className="size-4" />
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            asChild
+                            className="rounded-lg text-muted-foreground hover:text-[oklch(0.55_0.16_50)] hover:bg-[oklch(0.62_0.19_48)/10%]"
+                            title="Edit Form"
+                          >
+                            <Link href={`/dashboard/forms/${form.id}`}>
+                              <PencilIcon className="size-4" />
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={async () => {
+                              try {
+                                await cloneFormAsync({ formId: form.id })
+                                toast.success(`"${form.title}" cloned as draft!`)
+                              } catch (err: any) {
+                                toast.error(err?.message ?? "Failed to clone form.")
+                              }
+                            }}
+                            disabled={isCloning}
+                            className="rounded-lg text-muted-foreground hover:text-[oklch(0.62_0.19_48)] hover:bg-[oklch(0.62_0.19_48)/10%]"
+                            title="Clone Form"
+                          >
+                            <CopyPlusIcon className="size-4" />
+                          </Button>
+                          {/* Archive Form */}
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => handleArchive(form.id, form.title)}
+                            disabled={isArchiving}
+                            className="rounded-lg text-muted-foreground hover:text-amber-600 hover:bg-amber-50"
+                            title="Archive Form"
+                          >
+                            <ArchiveIcon className="size-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          {/* Restore Form */}
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => handleRestore(form.id, form.title)}
+                            disabled={isRestoring}
+                            className="rounded-lg text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50"
+                            title="Restore Form"
+                          >
+                            <ArchiveRestoreIcon className="size-4" />
+                          </Button>
+                          {/* Permanent Delete */}
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => setDeleteFormId(form.id)}
+                            className="rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            title="Permanently Delete Form"
+                          >
+                            <Trash2Icon className="size-4" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       <Dialog open={!!shareFormId} onOpenChange={(open) => !open && setShareFormId(null)}>
         <DialogContent className="sm:max-w-md rounded-2xl">

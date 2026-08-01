@@ -12,6 +12,7 @@ const FIELD_META: Record<string, { label: string; icon: string; color: string; h
   phone:        { label: "Phone",        icon: "call",                  color: "text-blue-500",   hasOptions: false, hasPlaceholder: true,  hasDescription: true },
   select:       { label: "Single Select",icon: "radio_button_checked",  color: "text-amber-500",  hasOptions: true,  hasPlaceholder: false, hasDescription: true },
   multi_select: { label: "Multi Select", icon: "check_box",             color: "text-amber-500",  hasOptions: true,  hasPlaceholder: false, hasDescription: true },
+  radio:        { label: "Radio",        icon: "radio_button_checked",  color: "text-amber-500",  hasOptions: true,  hasPlaceholder: false, hasDescription: true },
   checkbox:     { label: "Checkbox",     icon: "check_box_outline_blank",color: "text-green-500", hasOptions: false, hasPlaceholder: false, hasDescription: true },
   rating:       { label: "Rating",       icon: "star",                  color: "text-orange-500", hasOptions: false, hasPlaceholder: false, hasDescription: true },
   date:         { label: "Date",         icon: "calendar_today",        color: "text-purple-500", hasOptions: false, hasPlaceholder: true,  hasDescription: true },
@@ -40,22 +41,44 @@ export function BuilderInspector({ fieldId, formId, onDelete }: BuilderInspector
   const [options, setOptions]         = useState<string[]>([]);
   const [dirty, setDirty]             = useState(false);
 
+  const meta = field ? (FIELD_META[field.type] ?? DEFAULT_META) : DEFAULT_META;
+
   // Sync local state when field loads/changes
   useEffect(() => {
     if (!field) return;
     setLabel(field.label ?? "");
     setDescription((field.description as string) ?? "");
-    setPlaceholder((field.placeholder as string) ?? "");
     setIsRequired(field.isRequired ?? false);
-    // options might be an array of strings or objects
-    const rawOpts = (field as any).options as string[] | { label: string }[] | null | undefined;
-    if (Array.isArray(rawOpts)) {
-      setOptions(rawOpts.map((o) => (typeof o === "string" ? o : o.label)));
+
+    const fieldMeta = FIELD_META[field.type] ?? DEFAULT_META;
+    if (fieldMeta.hasOptions) {
+      let loadedOpts: string[] = [];
+      const rawOpts = (field as any).options;
+      if (Array.isArray(rawOpts) && rawOpts.length > 0) {
+        loadedOpts = rawOpts.map((o: any) => (typeof o === "string" ? o : o.label || o.value || ""));
+      } else if (field.placeholder) {
+        try {
+          const parsed = JSON.parse(field.placeholder);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            loadedOpts = parsed.map((o: any) => (typeof o === "string" ? o : o.label || o.value || ""));
+          }
+        } catch {
+          if (typeof field.placeholder === "string" && field.placeholder.trim()) {
+            loadedOpts = field.placeholder.split(",").map((s) => s.trim()).filter(Boolean);
+          }
+        }
+      }
+      if (loadedOpts.length === 0) {
+        loadedOpts = ["Option 1", "Option 2"];
+      }
+      setOptions(loadedOpts);
+      setPlaceholder("");
     } else {
+      setPlaceholder((field.placeholder as string) ?? "");
       setOptions([]);
     }
     setDirty(false);
-  }, [field?.id, field?.label]);
+  }, [field?.id, field?.label, field?.placeholder, field?.description, field?.isRequired, field?.type]);
 
   const updateField = trpc.form.updateField.useMutation({
     onSuccess: () => {
@@ -72,11 +95,15 @@ export function BuilderInspector({ fieldId, formId, onDelete }: BuilderInspector
   });
 
   const handleSave = () => {
+    const finalPlaceholder = meta.hasOptions
+      ? JSON.stringify(options)
+      : (placeholder || null);
+
     updateField.mutate({
       fieldId,
       label,
       description: description || null,
-      placeholder: placeholder || null,
+      placeholder: finalPlaceholder,
       isRequired,
     });
   };
@@ -86,8 +113,6 @@ export function BuilderInspector({ fieldId, formId, onDelete }: BuilderInspector
       deleteFieldMutation.mutate({ fieldId });
     }
   };
-
-  const meta = field ? (FIELD_META[field.type] ?? DEFAULT_META) : DEFAULT_META;
 
   if (!field) {
     return (

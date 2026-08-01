@@ -1,5 +1,6 @@
-import { db, eq, asc, and } from "@repo/database"
+import { db, eq, asc, and, count, desc } from "@repo/database"
 import { formsTable } from "@repo/database/models/form"
+import { formSubmissionsTable } from "@repo/database/models/form-submition"
 import { type CreateFormInputType, createFormInput } from "./model"
 import {
     type ListFormsByUserIdInputType, listFormsByUserIdInput,
@@ -60,9 +61,50 @@ class FormService {
             createdAt: formsTable.createdAt,
         })
         .from(formsTable)
-        .where(eq(formsTable.createdBy, userId))
+        .where(and(eq(formsTable.createdBy, userId), eq(formsTable.isArchived, false)))
 
         return { forms }
+    }
+
+    public async listArchivedForms(payload: ListFormsByUserIdInputType) {
+        const { userId } = await listFormsByUserIdInput.parseAsync(payload)
+
+        const forms = await db.select({
+            id: formsTable.id,
+            title: formsTable.title,
+            description: formsTable.description,
+            isActive: formsTable.isActive,
+            visibility: formsTable.visibility,
+            createdAt: formsTable.createdAt,
+        })
+        .from(formsTable)
+        .where(and(eq(formsTable.createdBy, userId), eq(formsTable.isArchived, true)))
+
+        return { forms }
+    }
+
+    public async archiveForm(payload: { formId: string; userId: string }) {
+        const { formId, userId } = payload
+
+        const result = await db.update(formsTable)
+            .set({ isArchived: true, isActive: false, updatedBy: userId })
+            .where(and(eq(formsTable.id, formId), eq(formsTable.createdBy, userId)))
+            .returning({ id: formsTable.id })
+
+        if (!result[0]) throw Error("Form not found or you are not authorized.")
+        return { formId: result[0].id }
+    }
+
+    public async restoreForm(payload: { formId: string; userId: string }) {
+        const { formId, userId } = payload
+
+        const result = await db.update(formsTable)
+            .set({ isArchived: false, updatedBy: userId })
+            .where(and(eq(formsTable.id, formId), eq(formsTable.createdBy, userId)))
+            .returning({ id: formsTable.id })
+
+        if (!result[0]) throw Error("Form not found or you are not authorized.")
+        return { formId: result[0].id }
     }
 
     public async getFormById(payload: GetFormByIdInputType) {
@@ -252,6 +294,46 @@ class FormService {
         }
 
         return { formId: cloned.id }
+    }
+
+    public async getDashboardStats(payload: { userId: string }) {
+        const { userId } = payload
+
+        // Total forms (non-archived)
+        const [totalFormsRow] = await db.select({ count: count() })
+            .from(formsTable)
+            .where(and(eq(formsTable.createdBy, userId), eq(formsTable.isArchived, false)))
+
+        // Active forms
+        const [activeFormsRow] = await db.select({ count: count() })
+            .from(formsTable)
+            .where(and(eq(formsTable.createdBy, userId), eq(formsTable.isActive, true), eq(formsTable.isArchived, false)))
+
+        // Total submissions across all user's forms
+        const [totalSubmissionsRow] = await db.select({ count: count() })
+            .from(formSubmissionsTable)
+            .innerJoin(formsTable, eq(formSubmissionsTable.formId, formsTable.id))
+            .where(eq(formsTable.createdBy, userId))
+
+        // 5 most recent submissions with form title
+        const recentSubmissions = await db.select({
+            id: formSubmissionsTable.id,
+            formId: formSubmissionsTable.formId,
+            formTitle: formsTable.title,
+            createdAt: formSubmissionsTable.createdAt,
+        })
+        .from(formSubmissionsTable)
+        .innerJoin(formsTable, eq(formSubmissionsTable.formId, formsTable.id))
+        .where(eq(formsTable.createdBy, userId))
+        .orderBy(desc(formSubmissionsTable.createdAt))
+        .limit(5)
+
+        return {
+            totalForms: totalFormsRow?.count ?? 0,
+            activeForms: activeFormsRow?.count ?? 0,
+            totalSubmissions: totalSubmissionsRow?.count ?? 0,
+            recentSubmissions,
+        }
     }
 }
 
