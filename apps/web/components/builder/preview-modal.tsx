@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 // import { TerminalForm } from "~/app/terminal-theme-preview/components/terminal-form";
 const THEMES = [
   { id: "default", label: "Default", color: "#f97316" }, // orange-500
@@ -40,6 +40,23 @@ export function PreviewModal({ open, onClose, formTitle, fields, layout = "step"
   const [device, setDevice] = useState<Device>("desktop");
   const [zoom, setZoom] = useState<Zoom>(0.75);
   const [theme, setTheme] = useState<string>("default");
+  const [isMobileScreen, setIsMobileScreen] = useState(false);
+
+  // Auto-select appropriate device & zoom on small screens
+  useEffect(() => {
+    if (!open) return;
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobileScreen(mobile);
+      if (mobile) {
+        setDevice("mobile");
+        setZoom(0.75);
+      }
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, [open]);
 
   if (!open) return null;
 
@@ -125,8 +142,12 @@ export function PreviewModal({ open, onClose, formTitle, fields, layout = "step"
       </div>
 
       {/* Workspace */}
-      <div className="flex-1 flex items-center justify-center overflow-hidden p-8">
-        <div style={{ transform: `scale(${zoom})`, transition: "transform 0.3s cubic-bezier(0.4,0,0.2,1)" }}>
+      <div className="flex-1 flex items-center justify-center overflow-hidden p-2 sm:p-4 md:p-8">
+        <div style={{
+          transform: `scale(${isMobileScreen ? Math.min(zoom, (window.innerWidth - 32) / (device === 'desktop' ? 900 : device === 'tablet' ? 740 : 340)) : zoom})`,
+          transition: "transform 0.3s cubic-bezier(0.4,0,0.2,1)",
+          transformOrigin: "center center",
+        }}>
           {theme === "terminal" ? (
             <div className="text-slate-900 p-4 font-mono border border-green-500 bg-black/5">Terminal theme preview unavailable</div>
           ) : (

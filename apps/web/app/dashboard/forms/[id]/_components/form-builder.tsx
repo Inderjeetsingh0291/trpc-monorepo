@@ -84,7 +84,7 @@ export function FormBuilder({ formId }: { formId: string }) {
   const { undo, redo, canUndo, canRedo } = useUndoRedo()
   
   return (
-    <div className="fixed inset-0 z-[100] bg-background flex flex-col overflow-hidden font-sans text-foreground">
+    <div className="fixed inset-0 z-[100] bg-background flex flex-col overflow-hidden font-sans text-foreground" style={{ touchAction: "manipulation" }}>
       <BuilderHeader 
         formId={formId}
         formTitle={form?.title}
