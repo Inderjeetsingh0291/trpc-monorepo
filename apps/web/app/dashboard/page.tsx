@@ -15,6 +15,9 @@ import Link from "next/link"
 import { useGetDashboardStats } from "~/hooks/api/form"
 import { Skeleton } from "~/components/ui/skeleton"
 import PricingPage from "./pricing/page"
+import { usePullRefresh } from "~/hooks/use-pull-refresh"
+import { PullRefreshIndicator } from "~/components/pull-refresh-indicator"
+import { trpc } from "~/trpc/client"
 
 /* ─── Quick Action Card ─── */
 function QuickAction({
@@ -103,8 +106,24 @@ function RecentActivityFeed() {
 }
 
 export default function Page() {
+  const utils = trpc.useUtils()
+
+  const { isPulling, pullDistance, isRefreshing, threshold } = usePullRefresh({
+    onRefresh: async () => {
+      // Invalidate all tRPC queries to refetch fresh data
+      await utils.form.invalidate()
+    },
+  })
+
   return (
     <div className="flex flex-col gap-6 py-6">
+
+      {/* Pull-to-refresh indicator */}
+      <PullRefreshIndicator
+        pullDistance={pullDistance}
+        isRefreshing={isRefreshing}
+        threshold={threshold}
+      />
 
       {/* ── Page Header ── */}
       <div className="px-4 lg:px-6">
