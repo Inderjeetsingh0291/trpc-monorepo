@@ -68,12 +68,12 @@ const data = {
   navSecondary: [
     {
       title: "Help & Support",
-      url: "https://makeforms-anxim620l-inderjeet-singh-s-projects3.vercel.app/form/443ab44c-5be8-4c3f-9c75-05f1cce2902e",
+      url: "/form/443ab44c-5be8-4c3f-9c75-05f1cce2902e",
       icon: IconHelp,
     },
     {
       title: "Feedback",
-      url: "https://makeforms-anxim620l-inderjeet-singh-s-projects3.vercel.app/form/035c6430-b79b-467d-aaa7-d2d2db448d02",
+      url: "/form/035c6430-b79b-467d-aaa7-d2d2db448d02",
       icon: IconMessageCircle,
     }
   ],
