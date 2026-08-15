@@ -125,4 +125,4 @@ class userService {
     }
 }
 
-export default userService
+export default userService
