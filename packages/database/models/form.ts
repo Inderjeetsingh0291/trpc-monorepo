@@ -24,9 +24,9 @@ export const formsTable = pgTable("forms", {
   isArchived: boolean("is_archived").default(false).notNull(),
   layout: varchar("layout", { length: 20 }).default("step").notNull(),
 
-  createdBy: uuid("created_by").references(() => usersTable.id),
+  createdBy: uuid("created_by").references(() => usersTable.id,{onDelete:"cascade"}),
   updatedBy: uuid("updated_by").references(() => usersTable.id),
 
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
-});
+});
