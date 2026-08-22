@@ -68,9 +68,18 @@ export function LoginForm({
 
         {/* Password */}
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="login-password" className="text-sm font-semibold text-foreground/80">
-            Password
-          </label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="login-password" className="text-sm font-semibold text-foreground/80">
+              Password
+            </label>
+            <Link
+              href="/forgot-password"
+              className="text-xs font-semibold hover:underline underline-offset-4"
+              style={{ color: "oklch(0.55 0.16 50)" }}
+            >
+              Forgot password?
+            </Link>
+          </div>
           <input
             id="login-password"
             type="password"

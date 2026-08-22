@@ -21,8 +21,27 @@ export const GenerateUserTokenPayload =z.object({
 export type GenerateUserTokenPayloadType = z.infer<typeof GenerateUserTokenPayload>
 
 export const signInUserWithEmailAndPasswordInput = z.object({
-    email: z.email().describe("Email of the user"),
+    email: z.string().email().describe("Email of the user"),
     password: z.string().describe("Password of the user"),
 })
 
 export type SignInUserWithEmailAndPasswordInputType = z.infer<typeof signInUserWithEmailAndPasswordInput>
+
+export const verifyEmailInput = z.object({
+    token: z.string().min(1).describe("Verification token"),
+})
+
+export type VerifyEmailInputType = z.infer<typeof verifyEmailInput>
+
+export const forgotPasswordInput = z.object({
+    email: z.string().email().describe("User email address"),
+})
+
+export type ForgotPasswordInputType = z.infer<typeof forgotPasswordInput>
+
+export const resetPasswordInput = z.object({
+    token: z.string().min(1).describe("Reset password token"),
+    password: z.string().regex(PASSWORD_REGEX, PASSWORD_ERROR).describe("New password"),
+})
+
+export type ResetPasswordInputType = z.infer<typeof resetPasswordInput>

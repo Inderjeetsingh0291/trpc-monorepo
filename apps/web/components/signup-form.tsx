@@ -28,6 +28,7 @@ export function SignupForm({
   const { register, handleSubmit, watch, formState: { isSubmitting } } = useForm()
   const [serverError, setServerError] = useState("")
   const [passwordErrors, setPasswordErrors] = useState<string[]>([])
+  const [successEmail, setSuccessEmail] = useState("")
 
   // Live password validation feedback
   const watchedPassword = watch("password", "")
@@ -64,10 +65,39 @@ export function SignupForm({
         fullName: data.name,
         password: data.password,
       })
-      router.replace("/dashboard")
+      setSuccessEmail(data.email)
     } catch (err: any) {
       setServerError(err?.message || "Failed to create account.")
     }
+  }
+
+  if (successEmail) {
+    return (
+      <div className="flex flex-col gap-6 text-center py-4">
+        <div className="flex size-14 items-center justify-center rounded-2xl shadow-lg mx-auto bg-indigo-50 border border-indigo-200">
+          <svg className="size-7 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+          </svg>
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-xl font-bold tracking-tight text-foreground">Verify Your Email</h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            We&apos;ve sent a verification link to <strong className="text-foreground">{successEmail}</strong>.
+            Please check your inbox to activate your account.
+          </p>
+        </div>
+        <Button
+          onClick={() => router.push("/dashboard")}
+          className="h-11 w-full rounded-xl font-semibold text-white shadow-md transition-all mt-2"
+          style={{
+            background: "linear-gradient(135deg, oklch(0.62 0.19 48), oklch(0.7 0.2 60))",
+            border: "none",
+          }}
+        >
+          Go to Dashboard
+        </Button>
+      </div>
+    )
   }
 
   return (

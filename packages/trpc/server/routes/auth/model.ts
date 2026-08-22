@@ -31,5 +31,54 @@ export const getLoggedInUserInfoOutputModel = z.object({
     id: z.string().describe("Id of the user"),
     fullName: z.string().describe("Full name of the user"),
     email: z.string().email().describe("Email of the user"),
+    emailVerified: z.boolean().nullable().optional().describe("Whether email is verified"),
     profileImageUrl: z.string().nullable().optional().describe("Profile image URL of the user"),
+})
+
+export const sendVerificationEmailInputModel = z.object({
+    to: z.string().email().describe("Recipient email address"),
+    verificationUrl: z.string().url().describe("Verification link URL"),
+})
+
+export const sendVerificationEmailOutputModel = z.object({
+    success: z.boolean(),
+    messageId: z.string().optional(),
+})
+
+export const sendResetPasswordEmailInputModel = z.object({
+    to: z.string().email().describe("Recipient email address"),
+    resetUrl: z.string().url().describe("Password reset link URL"),
+})
+
+export const sendResetPasswordEmailOutputModel = z.object({
+    success: z.boolean(),
+    messageId: z.string().optional(),
+})
+
+export const verifyEmailTokenInputModel = z.object({
+    token: z.string().min(1).describe("Verification token"),
+})
+
+export const verifyEmailTokenOutputModel = z.object({
+    success: z.boolean(),
+    message: z.string(),
+})
+
+export const forgotPasswordInputModel = z.object({
+    email: z.string().email().describe("User email address"),
+})
+
+export const forgotPasswordOutputModel = z.object({
+    success: z.boolean(),
+    message: z.string(),
+})
+
+export const resetPasswordInputModel = z.object({
+    token: z.string().min(1).describe("Reset password token"),
+    password: z.string().regex(PASSWORD_REGEX, PASSWORD_ERROR).describe("New password"),
+})
+
+export const resetPasswordOutputModel = z.object({
+    success: z.boolean(),
+    message: z.string(),
 })

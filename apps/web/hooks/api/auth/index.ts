@@ -91,3 +91,118 @@ export const useSignOut = () => {
 
     return { signOutAsync, isPending }
 }
+
+export const useSendVerificationEmail = () => {
+    const {
+        mutateAsync: sendVerificationEmailAsync,
+        mutate: sendVerificationEmail,
+        error,
+        isError,
+        isPending,
+        isSuccess,
+        status
+    } = trpc.auth.sendVerificationEmail.useMutation();
+
+    return {
+        sendVerificationEmail,
+        sendVerificationEmailAsync,
+        error,
+        isError,
+        isPending,
+        isSuccess,
+        status
+    }
+}
+
+export const useSendResetPasswordEmail = () => {
+    const {
+        mutateAsync: sendResetPasswordEmailAsync,
+        mutate: sendResetPasswordEmail,
+        error,
+        isError,
+        isPending,
+        isSuccess,
+        status
+    } = trpc.auth.sendResetPasswordEmail.useMutation();
+
+    return {
+        sendResetPasswordEmail,
+        sendResetPasswordEmailAsync,
+        error,
+        isError,
+        isPending,
+        isSuccess,
+        status
+    }
+}
+
+export const useVerifyEmailToken = () => {
+    const utils = trpc.useUtils();
+    const {
+        mutateAsync: verifyEmailTokenAsync,
+        mutate: verifyEmailToken,
+        error,
+        isError,
+        isPending,
+        isSuccess,
+        status
+    } = trpc.auth.verifyEmailToken.useMutation({
+        onSuccess: async () => {
+            await utils.auth.getLoggedInUserInfo.invalidate();
+        }
+    });
+
+    return {
+        verifyEmailToken,
+        verifyEmailTokenAsync,
+        error,
+        isError,
+        isPending,
+        isSuccess,
+        status
+    }
+}
+
+export const useForgotPassword = () => {
+    const {
+        mutateAsync: forgotPasswordAsync,
+        mutate: forgotPassword,
+        error,
+        isError,
+        isPending,
+        isSuccess,
+        status
+    } = trpc.auth.forgotPassword.useMutation();
+
+    return {
+        forgotPassword,
+        forgotPasswordAsync,
+        error,
+        isError,
+        isPending,
+        isSuccess,
+        status
+    }
+}
+
+export const useResetPassword = () => {
+    const {
+        mutateAsync: resetPasswordAsync,
+        mutate: resetPassword,
+        error,
+        isError,
+        isPending,
+        isSuccess,
+        status
+    } = trpc.auth.resetPassword.useMutation();
+
+    return {
+        resetPassword,
+        resetPasswordAsync,
+        error,
+        isError,
+        isPending,
+        isSuccess,
+        status
+    }
+}

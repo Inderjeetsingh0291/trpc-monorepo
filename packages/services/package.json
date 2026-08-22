@@ -4,6 +4,7 @@
   "private": true,
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
+    "@types/nodemailer": "^8.0.1",
     "dotenv-cli": "^11.0.0"
   },
   "dependencies": {
@@ -14,6 +15,7 @@
     "@types/node": "^22.15.3",
     "google-auth-library": "^10.5.0",
     "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^9.0.5",
     "resend": "^4.6.0",
     "typescript": "^5.9.3",
     "zod": "^4.3.5"
