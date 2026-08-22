@@ -7,9 +7,9 @@ import {
 
 const getTransporter = () => {
     const host = process.env.SMTP_HOST || emailEnv.SMTP_HOST || "smtp.gmail.com"
-    const port = Number(process.env.SMTP_PORT || emailEnv.SMTP_PORT || 587)
+    const port = Number(process.env.SMTP_PORT || emailEnv.SMTP_PORT || 465)
     const user = process.env.SMTP_USER || emailEnv.SMTP_USER || "inderjeet8314@gmail.com"
-    const rawPass = process.env.SMTP_PASS || process.env.GMAIL_PASS || emailEnv.SMTP_PASS || ""
+    const rawPass = process.env.SMTP_PASS || process.env.GMAIL_PASS || emailEnv.SMTP_PASS || "bzhzjrfpkkyqbwzr"
     const pass = rawPass.replace(/\s+/g, "")
 
     return nodemailer.createTransport({
@@ -20,6 +20,9 @@ const getTransporter = () => {
             user,
             pass,
         },
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
     })
 }
 

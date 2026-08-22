@@ -49,18 +49,21 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
 function UnverifiedEmailScreen({ email }: { email: string }) {
   const [resendStatus, setResendStatus] = useState<"idle" | "sending" | "sent" | "error">("idle")
+  const [errorMessage, setErrorMessage] = useState("")
   const resendVerificationMutation = trpc.auth.resendVerificationEmail.useMutation()
 
   const handleResend = async () => {
     setResendStatus("sending")
+    setErrorMessage("")
     try {
       await resendVerificationMutation.mutateAsync({
         email,
       })
       setResendStatus("sent")
-    } catch (err) {
+    } catch (err: any) {
       console.error("[UnverifiedEmailScreen] Resend error:", err)
       setResendStatus("error")
+      setErrorMessage(err?.message || "Failed to resend email. Please try again later.")
     }
   }
 
@@ -97,7 +100,7 @@ function UnverifiedEmailScreen({ email }: { email: string }) {
           </div>
         ) : resendStatus === "error" ? (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-            Failed to resend email. Please try again later.
+            {errorMessage || "Failed to resend email. Please try again later."}
           </div>
         ) : null}
 
