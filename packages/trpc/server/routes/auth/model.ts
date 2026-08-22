@@ -82,3 +82,12 @@ export const resetPasswordOutputModel = z.object({
     success: z.boolean(),
     message: z.string(),
 })
+
+export const resendVerificationEmailInputModel = z.object({
+    email: z.string().email().describe("User email address"),
+})
+
+export const resendVerificationEmailOutputModel = z.object({
+    success: z.boolean(),
+    message: z.string(),
+})

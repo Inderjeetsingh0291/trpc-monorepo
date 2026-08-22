@@ -17,7 +17,9 @@ import {
   forgotPasswordInputModel,
   forgotPasswordOutputModel,
   resetPasswordInputModel,
-  resetPasswordOutputModel
+  resetPasswordOutputModel,
+  resendVerificationEmailInputModel,
+  resendVerificationEmailOutputModel
 } from "./model";
 import { userService, emailService } from "@repo/services";
 import { setAuthenticationCookie, getAuthenticationCookie, clearAuthenticationCookie } from "../../utils/cookie";
@@ -150,6 +152,17 @@ export const authRouter = router({
     }
   }).input(resetPasswordInputModel).output(resetPasswordOutputModel).mutation(async ({ input }) => {
     return userService.resetPassword(input.token, input.password);
+  }),
+
+  // Resend verification email
+  resendVerificationEmail: publicProcedure.meta({
+    openapi: {
+      method: "POST",
+      path: getPath('/resendVerificationEmail'),
+      tags: TAGS
+    }
+  }).input(resendVerificationEmailInputModel).output(resendVerificationEmailOutputModel).mutation(async ({ input }) => {
+    return userService.resendVerificationEmail(input.email);
   }),
 
 });

@@ -118,6 +118,30 @@ class userService {
         return { success: true, message: "Email verified successfully" }
     }
 
+    public async resendVerificationEmail(email: string, baseUrl?: string) {
+        const user = await this.getUserByEmail(email)
+        if (!user) {
+            throw new Error(`User with email ${email} not found`)
+        }
+
+        if (user.emailVerified) {
+            return { success: true, message: "Email is already verified" }
+        }
+
+        const verificationToken = randomBytes(32).toString('hex')
+        await db.update(usersTable).set({
+            verificationToken
+        }).where(eq(usersTable.id, user.id))
+
+        const defaultHost = process.env.NODE_ENV === "production" ? "https://make-forms.vercel.app" : "http://localhost:3000"
+        const hostUrl = baseUrl || process.env.NEXT_PUBLIC_APP_URL || defaultHost
+        const verificationUrl = `${hostUrl}/verify-email?token=${verificationToken}`
+
+        await emailService.sendVerificationEmail({ to: email, verificationUrl })
+
+        return { success: true, message: "Verification email sent successfully" }
+    }
+
     public async forgotPassword(email: string, baseUrl?: string) {
         const user = await this.getUserByEmail(email)
         if (!user) {

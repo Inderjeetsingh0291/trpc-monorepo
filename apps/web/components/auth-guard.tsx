@@ -49,18 +49,17 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
 function UnverifiedEmailScreen({ email }: { email: string }) {
   const [resendStatus, setResendStatus] = useState<"idle" | "sending" | "sent" | "error">("idle")
-  const sendVerificationMutation = trpc.auth.sendVerificationEmail.useMutation()
+  const resendVerificationMutation = trpc.auth.resendVerificationEmail.useMutation()
 
   const handleResend = async () => {
     setResendStatus("sending")
     try {
-      const hostUrl = window.location.origin
-      await sendVerificationMutation.mutateAsync({
-        to: email,
-        verificationUrl: `${hostUrl}/verify-email`,
+      await resendVerificationMutation.mutateAsync({
+        email,
       })
       setResendStatus("sent")
-    } catch {
+    } catch (err) {
+      console.error("[UnverifiedEmailScreen] Resend error:", err)
       setResendStatus("error")
     }
   }
