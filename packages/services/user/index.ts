@@ -89,9 +89,11 @@ class userService {
         const hostUrl = baseUrl || process.env.NEXT_PUBLIC_APP_URL || defaultHost
         const verificationUrl = `${hostUrl}/verify-email?token=${verificationToken}`
         
-        emailService.sendVerificationEmail({ to: email, verificationUrl }).catch(err => {
+        try {
+            await emailService.sendVerificationEmail({ to: email, verificationUrl })
+        } catch (err) {
             console.error("[userService] Error sending verification email:", err)
-        })
+        }
 
         return {
             id: userId,

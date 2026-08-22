@@ -6,10 +6,10 @@ import {
 } from "./model"
 
 const getTransporter = () => {
-    const host = emailEnv.SMTP_HOST || "smtp.gmail.com"
-    const port = Number(emailEnv.SMTP_PORT || 587)
-    const user = emailEnv.SMTP_USER || "inderjeet8314@gmail.com"
-    const pass = emailEnv.SMTP_PASS || process.env.GMAIL_PASS || process.env.SMTP_PASS || ""
+    const host = process.env.SMTP_HOST || emailEnv.SMTP_HOST || "smtp.gmail.com"
+    const port = Number(process.env.SMTP_PORT || emailEnv.SMTP_PORT || 587)
+    const user = process.env.SMTP_USER || emailEnv.SMTP_USER || "inderjeet8314@gmail.com"
+    const pass = process.env.SMTP_PASS || process.env.GMAIL_PASS || emailEnv.SMTP_PASS || ""
 
     return nodemailer.createTransport({
         host,
