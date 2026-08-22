@@ -1,22 +1,21 @@
-import { Metadata } from "next"
+"use client"
 
-export const metadata: Metadata = {
-  title: "API Documentation | MakeForms",
-  description: "API Reference for MakeForms",
-}
+import { ApiReferenceReact } from "@scalar/api-reference-react"
+import "@scalar/api-reference-react/style.css"
 
 export default function DocsPage() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 
-    (process.env.NODE_ENV === "production" ? "https://makeforms.onrender.com" : "http://localhost:8000")
-  const docsUrl = `${apiUrl}/docs`
-
   return (
-    <div className="flex h-screen w-full flex-col">
-      <iframe
-        src={docsUrl}
-        className="h-full w-full border-none"
-        title="API Documentation"
-        allow="clipboard-write"
+    <div className="h-screen w-full overflow-hidden">
+      <ApiReferenceReact
+        configuration={{
+          spec: {
+            url: "/api/openapi.json",
+          },
+          theme: "purple",
+          darkMode: true,
+          hideDownloadButton: false,
+          showSidebar: true,
+        }}
       />
     </div>
   )
