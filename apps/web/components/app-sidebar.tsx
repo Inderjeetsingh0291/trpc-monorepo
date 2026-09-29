@@ -11,6 +11,8 @@ import {
   IconChartBar,
   IconSparkles,
   IconCreditCard,
+  IconTrophy,
+  IconFileText,
 } from "@tabler/icons-react"
 import { usePathname } from "next/navigation"
 
@@ -42,7 +44,12 @@ const data = {
     {
       title: "My Forms",
       url: "/dashboard/forms",
-      icon: IconChartBar,
+      icon: IconFileText,
+    },
+    {
+      title: "My Quizzes",
+      url: "/dashboard/quizzes",
+      icon: IconTrophy,
     },
     {
       title: "Public Forms",
@@ -53,6 +60,11 @@ const data = {
       title: "Your Submissions",
       url: "/dashboard/submissions",
       icon: IconInbox,
+    },
+    {
+      title: "Question Bank",
+      url: "/dashboard/question-bank",
+      icon: IconClipboardText,
     },
     {
       title: "Pricing",
@@ -113,7 +125,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent className="py-4">
+      <SidebarContent
+        className="py-4 no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
         {/* Main Navigation */}
         <div className="px-3">
           <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/40">

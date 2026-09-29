@@ -1,0 +1,136 @@
+config:
+  target: "http://localhost:8000"
+  phases:
+    # Ramp up
+    - duration: 30
+      arrivalRate: 5
+      name: "Warm up"
+    # Ramp to 100 concurrent
+    - duration: 60
+      arrivalRate: 50
+      rampTo: 100
+      name: "Ramp to 100 RPS"
+    # Sustained load
+    - duration: 120
+      arrivalRate: 100
+      name: "Sustained 100 RPS"
+    # Spike
+    - duration: 30
+      arrivalRate: 250
+      name: "Spike 250 RPS"
+    # Cool down
+    - duration: 30
+      arrivalRate: 10
+      name: "Cool down"
+  defaults:
+    headers:
+      Content-Type: "application/json"
+      Accept: "application/json"
+  plugins:
+    metrics-by-endpoint: {}
+  ensure:
+    p95: 500       # p95 < 500ms
+    maxErrorRate: 1 # < 1% errors
+
+scenarios:
+  # -----------------------------------------------------------------
+  # Full quiz flow (weighted at 60% of traffic)
+  # -----------------------------------------------------------------
+  - name: "Full Quiz Flow"
+    weight: 60
+    flow:
+      # Step 1: Get quiz info
+      - get:
+          url: "/trpc/quiz.getPublic"
+          qs:
+            input: '{"json":{"formId":"{{ $processEnvironment.QUIZ_ID || \"00000000-0000-4000-a000-000000000001\" }}"}}'
+          capture:
+            - json: "$.result.data.quiz.id"
+              as: "quizId"
+          expect:
+            - statusCode: 200
+
+      - think: 2
+
+      # Step 2: Start attempt
+      - post:
+          url: "/trpc/quiz.startAttempt"
+          json:
+            json:
+              formId: "{{ quizId }}"
+              participantName: "Artillery User {{ $randomNumber(1, 99999) }}"
+              participantEmail: "user{{ $randomNumber(1, 99999) }}@artillery.test"
+          capture:
+            - json: "$.result.data.attemptId"
+              as: "attemptId"
+            - json: "$.result.data.questions[0].id"
+              as: "q1Id"
+            - json: "$.result.data.questions[0].options[0].id"
+              as: "opt1Id"
+          expect:
+            - statusCode: 200
+            - hasProperty: "result.data.attemptId"
+
+      - think: 3
+
+      # Step 3: Save answer to Q1
+      - post:
+          url: "/trpc/quiz.saveAnswer"
+          json:
+            json:
+              attemptId: "{{ attemptId }}"
+              questionId: "{{ q1Id }}"
+              selectedOptionIds:
+                - "{{ opt1Id }}"
+              textAnswer: null
+          expect:
+            - statusCode: 200
+
+      - think: 5
+
+      # Step 4: Submit
+      - post:
+          url: "/trpc/quiz.submitAttempt"
+          json:
+            json:
+              attemptId: "{{ attemptId }}"
+          expect:
+            - statusCode: 200
+
+      - think: 1
+
+      # Step 5: Get result
+      - get:
+          url: "/trpc/quiz.getResult"
+          qs:
+            input: '{"json":{"attemptId":"{{ attemptId }}"}}'
+          expect:
+            - statusCode: 200
+
+  # -----------------------------------------------------------------
+  # Quiz landing only (weighted at 30% of traffic)
+  # -----------------------------------------------------------------
+  - name: "Quiz Landing Only"
+    weight: 30
+    flow:
+      - get:
+          url: "/trpc/quiz.getPublic"
+          qs:
+            input: '{"json":{"formId":"{{ $processEnvironment.QUIZ_ID || \"00000000-0000-4000-a000-000000000001\" }}"}}'
+          expect:
+            - statusCode: 200
+      - think: 5
+
+  # -----------------------------------------------------------------
+  # Leaderboard checks (10% of traffic)
+  # -----------------------------------------------------------------
+  - name: "Leaderboard"
+    weight: 10
+    flow:
+      - get:
+          url: "/trpc/quiz.getLeaderboard"
+          qs:
+            input: '{"json":{"formId":"{{ $processEnvironment.QUIZ_ID || \"00000000-0000-4000-a000-000000000001\" }}","limit":10,"offset":0}}'
+          expect:
+            - statusCode: 200
+      - think: 3

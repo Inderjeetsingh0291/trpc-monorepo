@@ -2,7 +2,23 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { FileTextIcon, PencilIcon, Share2Icon, ExternalLinkIcon, CopyIcon, PlusIcon, Trash2Icon, EyeIcon, EyeOffIcon, GlobeIcon, CopyPlusIcon, ArchiveIcon, ArchiveRestoreIcon } from "lucide-react"
+import {
+  FileTextIcon,
+  PencilIcon,
+  Share2Icon,
+  ExternalLinkIcon,
+  CopyIcon,
+  PlusIcon,
+  Trash2Icon,
+  EyeIcon,
+  EyeOffIcon,
+  GlobeIcon,
+  CopyPlusIcon,
+  ArchiveIcon,
+  ArchiveRestoreIcon,
+  TrophyIcon,
+  BarChart3Icon,
+} from "lucide-react"
 import { toast } from "sonner"
 import { QRCodeSVG } from "qrcode.react"
 
@@ -36,7 +52,7 @@ export function FormsTable() {
   const { archiveFormAsync, isPending: isArchiving } = useArchiveForm()
   const { restoreFormAsync, isPending: isRestoring } = useRestoreForm()
 
-  const [activeTab, setActiveTab] = useState<"active" | "archived">("active")
+  const [activeTab, setActiveTab] = useState<"all" | "forms" | "quizzes" | "archived">("all")
   const [shareFormId, setShareFormId] = useState<string | null>(null)
   const [deleteFormId, setDeleteFormId] = useState<string | null>(null)
   const [publishFormId, setPublishFormId] = useState<string | null>(null)
@@ -193,22 +209,56 @@ export function FormsTable() {
     )
   }
 
-  const currentForms = activeTab === "active" ? forms : archivedForms
+  const formsOnly = forms.filter((f) => (f as any).type !== "quiz")
+  const quizzesOnly = forms.filter((f) => (f as any).type === "quiz")
+
+  const currentForms =
+    activeTab === "archived"
+      ? archivedForms
+      : activeTab === "forms"
+      ? formsOnly
+      : activeTab === "quizzes"
+      ? quizzesOnly
+      : forms
 
   return (
     <>
       {/* Tabs */}
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2 mb-2 flex-wrap">
         <button
-          onClick={() => setActiveTab("active")}
+          onClick={() => setActiveTab("all")}
           className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-            activeTab === "active"
+            activeTab === "all"
               ? "text-white shadow-md"
               : "text-muted-foreground hover:bg-muted"
           }`}
-          style={activeTab === "active" ? { background: "linear-gradient(135deg, oklch(0.62 0.19 48), oklch(0.7 0.2 60))" } : undefined}
+          style={activeTab === "all" ? { background: "linear-gradient(135deg, oklch(0.62 0.19 48), oklch(0.7 0.2 60))" } : undefined}
         >
-          Active Forms ({forms.length})
+          All Items ({forms.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("forms")}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            activeTab === "forms"
+              ? "text-white shadow-md"
+              : "text-muted-foreground hover:bg-muted"
+          }`}
+          style={activeTab === "forms" ? { background: "linear-gradient(135deg, oklch(0.5 0.14 145), oklch(0.58 0.15 155))" } : undefined}
+        >
+          <FileTextIcon className="size-3.5" />
+          Forms ({formsOnly.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("quizzes")}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            activeTab === "quizzes"
+              ? "text-white shadow-md"
+              : "text-muted-foreground hover:bg-muted"
+          }`}
+          style={activeTab === "quizzes" ? { background: "linear-gradient(135deg, oklch(0.62 0.19 48), oklch(0.7 0.2 60))" } : undefined}
+        >
+          <TrophyIcon className="size-3.5 text-amber-200" />
+          Quizzes ({quizzesOnly.length})
         </button>
         <button
           onClick={() => setActiveTab("archived")}
@@ -217,7 +267,7 @@ export function FormsTable() {
               ? "text-white shadow-md"
               : "text-muted-foreground hover:bg-muted"
           }`}
-          style={activeTab === "archived" ? { background: "linear-gradient(135deg, oklch(0.62 0.19 48), oklch(0.7 0.2 60))" } : undefined}
+          style={activeTab === "archived" ? { background: "linear-gradient(135deg, oklch(0.4 0.05 30), oklch(0.3 0.05 30))" } : undefined}
         >
           <ArchiveIcon className="size-3.5" />
           Archived ({archivedForms.length})
@@ -234,12 +284,20 @@ export function FormsTable() {
         >
           <ArchiveIcon className="size-10 text-muted-foreground/40" />
           <p className="font-semibold text-foreground">
-            {activeTab === "active" ? "No active forms" : "No archived forms"}
+            {activeTab === "archived"
+              ? "No archived items"
+              : activeTab === "quizzes"
+              ? "No quizzes found"
+              : activeTab === "forms"
+              ? "No forms found"
+              : "No items found"}
           </p>
           <p className="text-xs text-muted-foreground">
-            {activeTab === "active"
-              ? "Create a new form to get started."
-              : "Forms you archive will appear here."}
+            {activeTab === "archived"
+              ? "Forms or quizzes you archive will appear here."
+              : activeTab === "quizzes"
+              ? "Create an interactive quiz to challenge participants."
+              : "Create a new form or quiz to get started."}
           </p>
         </div>
       ) : (
@@ -267,25 +325,81 @@ export function FormsTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {currentForms.map((form) => (
-                <TableRow
-                  key={form.id}
-                  className="transition-colors hover:bg-[oklch(0.62_0.19_48)/5%] group"
-                  style={{ borderBottom: "1px solid oklch(0.88 0.025 75)" }}
-                >
-                  <TableCell className="font-semibold py-4">
-                    {activeTab === "active" ? (
-                      <Link
-                        href={`/dashboard/forms/${form.id}`}
-                        className="hover:underline underline-offset-4 transition-colors"
-                        style={{ color: "oklch(0.55 0.16 50)" }}
-                      >
-                        {form.title}
-                      </Link>
-                    ) : (
-                      <span className="text-muted-foreground">{form.title}</span>
-                    )}
-                  </TableCell>
+              {currentForms.map((form) => {
+                const isQuiz = (form as any).type === "quiz"
+
+                return (
+                  <TableRow
+                    key={form.id}
+                    className="transition-colors hover:bg-[oklch(0.62_0.19_48)/5%] group"
+                    style={{ borderBottom: "1px solid oklch(0.88 0.025 75)" }}
+                  >
+                    <TableCell className="font-semibold py-4">
+                      {isQuiz ? (
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="flex size-8 items-center justify-center rounded-xl shrink-0 shadow-2xs"
+                            style={{
+                              background: "linear-gradient(135deg, oklch(0.62 0.19 48 / 15%), oklch(0.7 0.2 60 / 15%))",
+                              color: "oklch(0.62 0.19 48)",
+                              border: "1px solid oklch(0.62 0.19 48 / 30%)",
+                            }}
+                          >
+                            <TrophyIcon className="size-4" />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            {activeTab !== "archived" ? (
+                              <Link
+                                href={`/dashboard/forms/${form.id}/quiz-builder`}
+                                className="hover:underline underline-offset-4 text-sm font-bold transition-colors truncate"
+                                style={{ color: "oklch(0.55 0.16 50)" }}
+                              >
+                                {form.title}
+                              </Link>
+                            ) : (
+                              <span className="text-muted-foreground text-sm font-bold">{form.title}</span>
+                            )}
+                            <span
+                              className="text-[10px] uppercase font-bold tracking-wider rounded-md px-1.5 py-0.2 w-fit mt-0.5"
+                              style={{
+                                background: "oklch(0.62 0.19 48 / 12%)",
+                                color: "oklch(0.62 0.19 48)",
+                              }}
+                            >
+                              Quiz
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="flex size-8 items-center justify-center rounded-xl shrink-0 shadow-2xs"
+                            style={{
+                              background: "linear-gradient(135deg, oklch(0.5 0.14 145 / 15%), oklch(0.58 0.15 155 / 15%))",
+                              color: "oklch(0.5 0.14 145)",
+                              border: "1px solid oklch(0.5 0.14 145 / 30%)",
+                            }}
+                          >
+                            <FileTextIcon className="size-4" />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            {activeTab !== "archived" ? (
+                              <Link
+                                href={`/dashboard/forms/${form.id}`}
+                                className="hover:underline underline-offset-4 text-sm font-semibold transition-colors truncate text-foreground"
+                              >
+                                {form.title}
+                              </Link>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">{form.title}</span>
+                            )}
+                            <span className="text-[10px] uppercase font-medium tracking-wider text-muted-foreground mt-0.5">
+                              Form
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </TableCell>
                   <TableCell className="text-muted-foreground">
                     {form.description || <span className="text-muted-foreground/40">—</span>}
                   </TableCell>
@@ -304,13 +418,13 @@ export function FormsTable() {
                   <TableCell>
                     <span
                       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        activeTab === "active" && form.isActive ? "cursor-pointer" : ""
+                        activeTab !== "archived" && form.isActive ? "cursor-pointer" : ""
                       } ${
                         form.visibility === "public"
                           ? "text-[oklch(0.62_0.19_48)] bg-[oklch(0.62_0.19_48)/10%] border border-[oklch(0.62_0.19_48)/25%]"
                           : "text-gray-600 bg-gray-100 border border-gray-200"
                       }`}
-                      onClick={() => activeTab === "active" && form.isActive && setPublishFormId(form.id)}
+                      onClick={() => activeTab !== "archived" && form.isActive && setPublishFormId(form.id)}
                     >
                       {form.visibility === "public"
                         ? <><GlobeIcon className="size-3" /> Public</>
@@ -328,9 +442,68 @@ export function FormsTable() {
                       : "—"}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      {activeTab === "active" ? (
+                    <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                      {activeTab !== "archived" ? (
                         <>
+                          {/* Distinct Primary Edit Option */}
+                          {isQuiz ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              asChild
+                              className="rounded-xl border-[oklch(0.62_0.19_48)/35%] bg-[oklch(0.62_0.19_48)/10%] hover:bg-[oklch(0.62_0.19_48)/20%] text-[oklch(0.62_0.19_48)] font-bold text-xs gap-1.5 h-8 px-2.5 shadow-2xs"
+                              title="Edit Quiz in Quiz Builder"
+                            >
+                              <Link href={`/dashboard/forms/${form.id}/quiz-builder`}>
+                                <TrophyIcon className="size-3.5 text-amber-500" />
+                                <span>Edit Quiz</span>
+                              </Link>
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              asChild
+                              className="rounded-xl border-[oklch(0.5_0.14_145)/35%] bg-[oklch(0.5_0.14_145)/10%] hover:bg-[oklch(0.5_0.14_145)/20%] text-[oklch(0.5_0.14_145)] font-bold text-xs gap-1.5 h-8 px-2.5 shadow-2xs"
+                              title="Edit Form in Form Builder"
+                            >
+                              <Link href={`/dashboard/forms/${form.id}`}>
+                                <PencilIcon className="size-3.5" />
+                                <span>Edit Form</span>
+                              </Link>
+                            </Button>
+                          )}
+
+                          {/* Analytics / Submissions */}
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            asChild
+                            className={`rounded-lg ${
+                              isQuiz
+                                ? "text-muted-foreground hover:text-[oklch(0.62_0.19_48)] hover:bg-[oklch(0.62_0.19_48)/10%]"
+                                : "text-muted-foreground hover:text-[oklch(0.5_0.14_145)] hover:bg-[oklch(0.5_0.14_145)/10%]"
+                            }`}
+                            title={isQuiz ? "Quiz Analytics & Leaderboard" : "View Submissions"}
+                          >
+                            <Link href={isQuiz ? `/dashboard/forms/${form.id}/quiz-analytics` : `/dashboard/forms/${form.id}/submissions`}>
+                              {isQuiz ? <BarChart3Icon className="size-4" /> : <FileTextIcon className="size-4" />}
+                            </Link>
+                          </Button>
+
+                          {/* Public Link / Preview */}
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            asChild
+                            className="rounded-lg text-muted-foreground hover:text-[oklch(0.62_0.19_48)] hover:bg-[oklch(0.62_0.19_48)/10%]"
+                            title={isQuiz ? "Take Quiz (Public)" : "Preview Form (Public)"}
+                          >
+                            <Link href={isQuiz ? `/quiz/${form.id}` : `/form/${form.id}`} target="_blank">
+                              <ExternalLinkIcon className="size-4" />
+                            </Link>
+                          </Button>
+
                           {/* Publish / Unpublish Toggle */}
                           <Button
                             variant="ghost"
@@ -342,52 +515,23 @@ export function FormsTable() {
                                 ? "text-[oklch(0.5_0.14_145)] hover:text-[oklch(0.5_0.14_145)] hover:bg-[oklch(0.5_0.14_145)/10%]"
                                 : "text-muted-foreground hover:text-[oklch(0.5_0.14_145)] hover:bg-[oklch(0.5_0.14_145)/10%]"
                             }`}
-                            title={form.isActive ? "Unpublish Form" : "Publish Form"}
+                            title={form.isActive ? "Unpublish" : "Publish"}
                           >
                             {form.isActive ? <EyeIcon className="size-4" /> : <EyeOffIcon className="size-4" />}
                           </Button>
+
+                          {/* Share */}
                           <Button
                             variant="ghost"
                             size="icon-sm"
                             onClick={() => setShareFormId(form.id)}
                             className="rounded-lg text-muted-foreground hover:text-[oklch(0.55_0.16_50)] hover:bg-[oklch(0.62_0.19_48)/10%]"
-                            title="Share Form"
+                            title="Share Link & QR"
                           >
                             <Share2Icon className="size-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            asChild
-                            className="rounded-lg text-muted-foreground hover:text-[oklch(0.55_0.16_50)] hover:bg-[oklch(0.62_0.19_48)/10%]"
-                            title="View Submissions"
-                          >
-                            <Link href={`/dashboard/forms/${form.id}/submissions`}>
-                              <FileTextIcon className="size-4" />
-                            </Link>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            asChild
-                            className="rounded-lg text-muted-foreground hover:text-[oklch(0.55_0.16_50)] hover:bg-[oklch(0.62_0.19_48)/10%]"
-                            title="Preview Form"
-                          >
-                            <Link href={`/form/${form.id}`} target="_blank">
-                              <ExternalLinkIcon className="size-4" />
-                            </Link>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            asChild
-                            className="rounded-lg text-muted-foreground hover:text-[oklch(0.55_0.16_50)] hover:bg-[oklch(0.62_0.19_48)/10%]"
-                            title="Edit Form"
-                          >
-                            <Link href={`/dashboard/forms/${form.id}`}>
-                              <PencilIcon className="size-4" />
-                            </Link>
-                          </Button>
+
+                          {/* Clone */}
                           <Button
                             variant="ghost"
                             size="icon-sm"
@@ -396,49 +540,51 @@ export function FormsTable() {
                                 await cloneFormAsync({ formId: form.id })
                                 toast.success(`"${form.title}" cloned as draft!`)
                               } catch (err: any) {
-                                toast.error(err?.message ?? "Failed to clone form.")
+                                toast.error(err?.message ?? "Failed to clone.")
                               }
                             }}
                             disabled={isCloning}
                             className="rounded-lg text-muted-foreground hover:text-[oklch(0.62_0.19_48)] hover:bg-[oklch(0.62_0.19_48)/10%]"
-                            title="Clone Form"
+                            title="Clone as Draft"
                           >
                             <CopyPlusIcon className="size-4" />
                           </Button>
-                          {/* Archive Form */}
+
+                          {/* Archive */}
                           <Button
                             variant="ghost"
                             size="icon-sm"
                             onClick={() => handleArchive(form.id, form.title)}
                             disabled={isArchiving}
                             className="rounded-lg text-muted-foreground hover:text-amber-600 hover:bg-amber-50"
-                            title="Archive Form"
+                            title="Archive"
                           >
                             <ArchiveIcon className="size-4" />
                           </Button>
-                          {/* Delete Form */}
+
+                          {/* Delete */}
                           <Button
                             variant="ghost"
                             size="icon-sm"
                             onClick={() => setDeleteFormId(form.id)}
                             className="rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                            title="Delete Form"
+                            title="Delete Permanently"
                           >
                             <Trash2Icon className="size-4" />
                           </Button>
                         </>
                       ) : (
                         <>
-                          {/* Restore Form */}
+                          {/* Restore */}
                           <Button
-                            variant="ghost"
-                            size="icon-sm"
+                            variant="outline"
+                            size="sm"
                             onClick={() => handleRestore(form.id, form.title)}
                             disabled={isRestoring}
-                            className="rounded-lg text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50"
-                            title="Restore Form"
+                            className="rounded-xl border-[oklch(0.5_0.14_145)/30%] bg-[oklch(0.5_0.14_145)/10%] hover:bg-[oklch(0.5_0.14_145)/20%] text-[oklch(0.5_0.14_145)] font-semibold text-xs gap-1.5 h-8 px-2.5"
                           >
-                            <ArchiveRestoreIcon className="size-4" />
+                            <ArchiveRestoreIcon className="size-3.5" />
+                            Restore
                           </Button>
                           {/* Permanent Delete */}
                           <Button
@@ -446,7 +592,7 @@ export function FormsTable() {
                             size="icon-sm"
                             onClick={() => setDeleteFormId(form.id)}
                             className="rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                            title="Permanently Delete Form"
+                            title="Permanently Delete"
                           >
                             <Trash2Icon className="size-4" />
                           </Button>
@@ -455,7 +601,8 @@ export function FormsTable() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              )
+            })}
             </TableBody>
           </Table>
         </div>

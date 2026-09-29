@@ -1,22 +1,34 @@
 "use client"
 
-import { PlusIcon, GlobeIcon, StarIcon, UsersIcon } from "lucide-react"
+import { PlusIcon, GlobeIcon, StarIcon, UsersIcon, TrophyIcon, FileTextIcon } from "lucide-react"
 import { CreateFormDialog } from "./_components/create-form-dialog"
+import { CreateQuizDialog } from "./_components/create-quiz-dialog"
 import { FormsTable } from "./_components/forms-table"
 
 const templates = [
   {
     label: "Blank Form",
-    desc: "Start from scratch",
-    icon: PlusIcon,
+    desc: "Collect responses & leads",
+    icon: FileTextIcon,
+    gradient: "from-[oklch(0.5_0.14_145)] to-[oklch(0.6_0.14_160)]",
+    bg: "oklch(0.5 0.14 145 / 10%)",
+    iconColor: "oklch(0.5 0.14 145)",
+    action: "create-form",
+    dashed: true,
+  },
+  {
+    label: "Interactive Quiz",
+    desc: "Timed & scored competition",
+    icon: TrophyIcon,
     gradient: "from-[oklch(0.62_0.19_48)] to-[oklch(0.7_0.2_60)]",
     bg: "oklch(0.62 0.19 48 / 10%)",
     iconColor: "oklch(0.62 0.19 48)",
+    action: "create-quiz",
     dashed: true,
   },
   {
     label: "Contact Us",
-    desc: "Capture leads",
+    desc: "Capture customer leads",
     icon: GlobeIcon,
     gradient: "from-[oklch(0.45_0.14_260)] to-[oklch(0.55_0.16_280)]",
     bg: "oklch(0.45 0.14 260 / 10%)",
@@ -25,12 +37,12 @@ const templates = [
     dashed: false,
   },
   {
-    label: "Feedback",
-    desc: "Gather insights",
+    label: "Feedback Survey",
+    desc: "Gather user insights",
     icon: UsersIcon,
-    gradient: "from-[oklch(0.5_0.14_145)] to-[oklch(0.6_0.14_160)]",
-    bg: "oklch(0.5 0.14 145 / 10%)",
-    iconColor: "oklch(0.5 0.14 145)",
+    gradient: "from-[oklch(0.65_0.18_25)] to-[oklch(0.7_0.16_40)]",
+    bg: "oklch(0.65 0.18 25 / 10%)",
+    iconColor: "oklch(0.65 0.18 25)",
     url: "/form/035c6430-b79b-467d-aaa7-d2d2db448d02",
     dashed: false,
   },
@@ -92,7 +104,10 @@ export default function FormsPage() {
               Build, share, and manage your forms with the spirit of Punjab.
             </p>
           </div>
-          <CreateFormDialog />
+          <div className="flex items-center gap-3 flex-wrap">
+            <CreateFormDialog />
+            <CreateQuizDialog />
+          </div>
         </div>
 
         {/* Bottom rainbow bar */}
@@ -119,8 +134,10 @@ export default function FormsPage() {
               <div
                 key={t.label}
                 onClick={() => {
-                  if (t.label === "Blank Form") {
+                  if (t.action === "create-form") {
                     document.getElementById("create-form-button")?.click()
+                  } else if (t.action === "create-quiz") {
+                    document.getElementById("create-quiz-button")?.click()
                   } else if (t.url) {
                     window.open(t.url, "_blank")
                   }

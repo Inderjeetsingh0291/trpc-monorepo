@@ -11,6 +11,9 @@ import { ViewToggle, useBuilderView } from "~/components/builder/view-toggle"
 import { FlowCanvas } from "~/components/builder/Flow-view/flow-canvas"
 import { SortableFieldList } from "~/components/builder/sortable-field-list"
 import { useUndoRedo } from "~/components/builder/use-undo-redo"
+import Link from "next/link"
+import { TrophyIcon } from "lucide-react"
+import { Button } from "~/components/ui/button"
 import { PreviewModal } from "~/components/builder/preview-modal"
 
 // Field types not yet supported by the backend
@@ -82,6 +85,46 @@ export function FormBuilder({ formId }: { formId: string }) {
   }
   
   const { undo, redo, canUndo, canRedo } = useUndoRedo()
+
+  if (form?.type === "quiz") {
+    return (
+      <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center p-6 text-center">
+        <div className="max-w-md w-full p-8 rounded-3xl border border-border/80 shadow-lg bg-card flex flex-col items-center gap-4">
+          <div
+            className="flex size-16 items-center justify-center rounded-2xl shadow-md text-white"
+            style={{
+              background: "linear-gradient(135deg, oklch(0.62 0.19 48), oklch(0.7 0.2 60))",
+            }}
+          >
+            <TrophyIcon className="size-8 text-amber-200" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <h2 className="text-xl font-bold text-foreground">Interactive Quiz Detected</h2>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              &quot;{form.title}&quot; is configured as an Interactive Quiz with questions, timed attempts, and automated grading. Please use the Quiz Builder to edit questions and quiz settings.
+            </p>
+          </div>
+          <div className="flex flex-col w-full gap-2.5 pt-2">
+            <Button
+              asChild
+              className="w-full rounded-xl font-semibold text-white shadow-md"
+              style={{
+                background: "linear-gradient(135deg, oklch(0.62 0.19 48), oklch(0.7 0.2 60))",
+              }}
+            >
+              <Link href={`/dashboard/forms/${formId}/quiz-builder`}>
+                <TrophyIcon className="size-4 mr-2 text-amber-200" />
+                Open in Quiz Builder
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="w-full rounded-xl">
+              <Link href="/dashboard/forms">Return to Forms</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
   
   return (
     <div className="fixed inset-0 z-[100] bg-background flex flex-col overflow-hidden font-sans text-foreground" style={{ touchAction: "manipulation" }}>

@@ -9,7 +9,10 @@
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
-    "seed": "turbo run seed"
+    "seed": "turbo run seed",
+    "test": "pnpm --filter @repo/services test",
+    "test:coverage": "pnpm --filter @repo/services test:coverage",
+    "load-test": "node load-tests/node-runner/quiz-load.mjs"
   },
   "devDependencies": {
     "prettier": "^3.7.4",

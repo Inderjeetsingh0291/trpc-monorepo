@@ -1,0 +1,1 @@
+ALTER TABLE "quiz_settings" ADD COLUMN "difficulty_distribution" jsonb;

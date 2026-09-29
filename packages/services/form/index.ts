@@ -1,6 +1,7 @@
 import { db, eq, asc, and, count, desc } from "@repo/database"
 import { formsTable } from "@repo/database/models/form"
 import { formSubmissionsTable } from "@repo/database/models/form-submition"
+import { quizAttemptsTable } from "@repo/database/models/quiz-attempt"
 import { type CreateFormInputType, createFormInput } from "./model"
 import {
     type ListFormsByUserIdInputType, listFormsByUserIdInput,
@@ -53,6 +54,7 @@ class FormService {
             id: formsTable.id,
             title: formsTable.title,
             description: formsTable.description,
+            type: formsTable.type,
             isActive: formsTable.isActive,
             visibility: formsTable.visibility,
             expiresAt: formsTable.expiresAt,
@@ -73,6 +75,7 @@ class FormService {
             id: formsTable.id,
             title: formsTable.title,
             description: formsTable.description,
+            type: formsTable.type,
             isActive: formsTable.isActive,
             visibility: formsTable.visibility,
             createdAt: formsTable.createdAt,
@@ -115,6 +118,7 @@ class FormService {
                 id: formsTable.id,
                 title: formsTable.title,
                 description: formsTable.description,
+                type: formsTable.type,
                 isActive: formsTable.isActive,
                 visibility: formsTable.visibility,
                 expiresAt: formsTable.expiresAt,
@@ -315,6 +319,31 @@ class FormService {
             .innerJoin(formsTable, eq(formSubmissionsTable.formId, formsTable.id))
             .where(eq(formsTable.createdBy, userId))
 
+        // Total quizzes (non-archived, type='quiz')
+        const [totalQuizzesRow] = await db.select({ count: count() })
+            .from(formsTable)
+            .where(and(
+                eq(formsTable.createdBy, userId),
+                eq(formsTable.type, "quiz"),
+                eq(formsTable.isArchived, false)
+            ))
+
+        // Active quizzes
+        const [activeQuizzesRow] = await db.select({ count: count() })
+            .from(formsTable)
+            .where(and(
+                eq(formsTable.createdBy, userId),
+                eq(formsTable.type, "quiz"),
+                eq(formsTable.isActive, true),
+                eq(formsTable.isArchived, false)
+            ))
+
+        // Total quiz attempts across all user's quizzes
+        const [totalAttemptsRow] = await db.select({ count: count() })
+            .from(quizAttemptsTable)
+            .innerJoin(formsTable, eq(quizAttemptsTable.formId, formsTable.id))
+            .where(eq(formsTable.createdBy, userId))
+
         // 5 most recent submissions with form title
         const recentSubmissions = await db.select({
             id: formSubmissionsTable.id,
@@ -332,6 +361,9 @@ class FormService {
             totalForms: totalFormsRow?.count ?? 0,
             activeForms: activeFormsRow?.count ?? 0,
             totalSubmissions: totalSubmissionsRow?.count ?? 0,
+            totalQuizzes: totalQuizzesRow?.count ?? 0,
+            activeQuizzes: activeQuizzesRow?.count ?? 0,
+            totalAttempts: totalAttemptsRow?.count ?? 0,
             recentSubmissions,
         }
     }

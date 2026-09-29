@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { PlusIcon } from "lucide-react"
+import { PlusIcon, FileTextIcon, CalendarIcon, UsersIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "~/components/ui/button"
@@ -21,30 +21,44 @@ import { Label } from "~/components/ui/label"
 import { Spinner } from "~/components/ui/spinner"
 import { useCreateForm } from "~/hooks/api/form"
 
-export function CreateFormDialog() {
+interface CreateFormDialogProps {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  trigger?: React.ReactNode
+}
+
+export function CreateFormDialog({
+  open: controlledOpen,
+  onOpenChange: setControlledOpen,
+  trigger,
+}: CreateFormDialogProps = {}) {
   const router = useRouter()
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = controlledOpen !== undefined
+  const open = isControlled ? controlledOpen : internalOpen
+  const setOpen = isControlled ? (setControlledOpen ?? (() => {})) : setInternalOpen
+
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [maxResponses, setMaxResponses] = useState("")
   const [expiresAt, setExpiresAt] = useState("")
 
+  const { createFormAsync, isPending } = useCreateForm()
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search)
-      if (params.get("create") === "true" || params.get("open") === "true") {
+      if (params.get("create") === "true" || params.get("createForm") === "true") {
         setOpen(true)
       }
     }
-  }, [])
-
-  const { createFormAsync, isPending } = useCreateForm()
+  }, [setOpen])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!title.trim()) {
-      toast.error("Title is required")
+      toast.error("Form title is required")
       return
     }
 
@@ -55,159 +69,159 @@ export function CreateFormDialog() {
         maxResponses: maxResponses ? parseInt(maxResponses, 10) : undefined,
         expiresAt: expiresAt ? new Date(expiresAt) : undefined,
       })
+
       toast.success("Form created successfully!")
-      setTitle("")
-      setDescription("")
-      setMaxResponses("")
-      setExpiresAt("")
+      resetForm()
       setOpen(false)
+
       if (res?.formId) {
         router.push(`/dashboard/forms/${res.formId}`)
       }
-    } catch {
-      toast.error("Failed to create form. Please try again.")
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to create form. Please try again.")
     }
+  }
+
+  const resetForm = () => {
+    setTitle("")
+    setDescription("")
+    setMaxResponses("")
+    setExpiresAt("")
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          id="create-form-button"
-          className="rounded-xl font-semibold text-white shadow-md transition-all hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
-          style={{
-            background: "linear-gradient(135deg, oklch(0.62 0.19 48), oklch(0.7 0.2 60))",
-            border: "none",
-          }}
-        >
-          <PlusIcon className="mr-2 size-4" />
-          Create Form
-        </Button>
-      </DialogTrigger>
+      {trigger ? (
+        <DialogTrigger asChild>{trigger}</DialogTrigger>
+      ) : (
+        <DialogTrigger asChild>
+          <Button
+            id="create-form-button"
+            className="rounded-xl font-semibold text-white shadow-md transition-all hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] gap-2"
+            style={{
+              background: "linear-gradient(135deg, oklch(0.5 0.14 145), oklch(0.58 0.15 155))",
+              border: "none",
+            }}
+          >
+            <FileTextIcon className="size-4" />
+            New Form
+          </Button>
+        </DialogTrigger>
+      )}
 
-      <DialogContent className="rounded-2xl sm:max-w-md">
+      <DialogContent className="rounded-2xl sm:max-w-lg">
         <form onSubmit={handleSubmit}>
-          {/* Dialog header with saffron accent */}
-          <DialogHeader className="pb-2">
-            <div className="flex items-center gap-3 mb-1">
+          <DialogHeader className="pb-3">
+            <div className="flex items-center gap-3">
               <div
-                className="flex size-9 items-center justify-center rounded-xl shadow"
+                className="flex size-10 items-center justify-center rounded-xl shadow-sm text-white shrink-0"
                 style={{
-                  background: "linear-gradient(135deg, oklch(0.62 0.19 48), oklch(0.7 0.2 60))",
+                  background: "linear-gradient(135deg, oklch(0.5 0.14 145), oklch(0.58 0.15 155))",
                 }}
               >
-                <PlusIcon className="size-5 text-white" />
+                <FileTextIcon className="size-5 text-white" />
               </div>
               <div>
-                <DialogTitle className="text-lg font-bold">Create a new form</DialogTitle>
-                <DialogDescription className="text-sm text-muted-foreground">
-                  Give your form a title and optional description.
+                <DialogTitle className="text-lg font-bold">Create New Form</DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Build a customizable form to collect leads, feedback, surveys, or registrations.
                 </DialogDescription>
               </div>
             </div>
           </DialogHeader>
 
-          <div className="flex flex-col gap-5 py-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="form-title" className="font-semibold text-foreground/80">
-                Title <span className="text-destructive">*</span>
+          <div className="flex flex-col gap-4 py-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="form-title" className="text-xs font-semibold">
+                Form Title <span className="text-rose-500">*</span>
               </Label>
               <Input
                 id="form-title"
-                placeholder="e.g. Customer Feedback Survey"
+                placeholder="e.g. Community Feedback Survey"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={55}
-                autoFocus
-                disabled={isPending}
-                className="h-11 rounded-xl border-border/60 bg-background/80 transition-all focus:border-[oklch(0.62_0.19_48)] focus:ring-[oklch(0.62_0.19_48)/30%]"
+                required
+                className="rounded-xl h-10"
               />
-              <p className="text-xs text-muted-foreground/70 text-right">
-                {title.length}/55
-              </p>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="form-description" className="font-semibold text-foreground/80">
-                Description{" "}
-                <span className="text-muted-foreground font-normal">(optional)</span>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="form-desc" className="text-xs font-semibold">
+                Description (Optional)
               </Label>
               <Textarea
-                id="form-description"
-                placeholder="Briefly describe what this form is for..."
+                id="form-desc"
+                placeholder="Brief introduction or purpose of this form..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                rows={2}
                 maxLength={55}
-                rows={3}
-                disabled={isPending}
-                className="rounded-xl border-border/60 bg-background/80 resize-none transition-all focus:border-[oklch(0.62_0.19_48)] focus:ring-[oklch(0.62_0.19_48)/30%]"
+                className="rounded-xl resize-none"
               />
-              <p className="text-xs text-muted-foreground/70 text-right">
-                {description.length}/55
-              </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="form-max-responses" className="font-semibold text-foreground/80">
-                  Response Limit <span className="text-muted-foreground font-normal">(optional)</span>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="form-max-resp" className="text-xs font-semibold flex items-center gap-1.5">
+                  <UsersIcon className="size-3.5 text-muted-foreground" />
+                  Max Responses
                 </Label>
                 <Input
-                  id="form-max-responses"
+                  id="form-max-resp"
                   type="number"
                   min={1}
-                  placeholder="e.g. 100"
+                  placeholder="Unlimited"
                   value={maxResponses}
                   onChange={(e) => setMaxResponses(e.target.value)}
-                  disabled={isPending}
-                  className="h-11 rounded-xl border-border/60 bg-background/80 transition-all focus:border-[oklch(0.62_0.19_48)] focus:ring-[oklch(0.62_0.19_48)/30%]"
+                  className="rounded-xl h-10 text-xs"
                 />
               </div>
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="form-expires-at" className="font-semibold text-foreground/80">
-                  Expiry Date <span className="text-muted-foreground font-normal">(optional)</span>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="form-expiry" className="text-xs font-semibold flex items-center gap-1.5">
+                  <CalendarIcon className="size-3.5 text-muted-foreground" />
+                  Expiry Date
                 </Label>
                 <Input
-                  id="form-expires-at"
+                  id="form-expiry"
                   type="date"
                   value={expiresAt}
                   onChange={(e) => setExpiresAt(e.target.value)}
-                  disabled={isPending}
-                  className="h-11 rounded-xl border-border/60 bg-background/80 transition-all focus:border-[oklch(0.62_0.19_48)] focus:ring-[oklch(0.62_0.19_48)/30%]"
+                  className="rounded-xl h-10 text-xs"
                 />
               </div>
             </div>
           </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="pt-3 border-t border-border/60">
             <Button
               type="button"
               variant="outline"
               onClick={() => setOpen(false)}
-              disabled={isPending}
               className="rounded-xl"
+              disabled={isPending}
             >
               Cancel
             </Button>
             <Button
-              id="submit-create-form"
               type="submit"
               disabled={isPending || !title.trim()}
-              className="rounded-xl font-semibold text-white min-w-[110px]"
+              className="rounded-xl font-semibold text-white shadow-md gap-2"
               style={{
-                background: "linear-gradient(135deg, oklch(0.62 0.19 48), oklch(0.7 0.2 60))",
-                border: "none",
-                opacity: isPending || !title.trim() ? 0.7 : 1,
+                background: "linear-gradient(135deg, oklch(0.5 0.14 145), oklch(0.58 0.15 155))",
               }}
             >
               {isPending ? (
                 <>
-                  <Spinner />
-                  Creating...
+                  <Spinner className="size-4" />
+                  Creating Form...
                 </>
               ) : (
-                "Create Form"
+                <>
+                  <FileTextIcon className="size-4" />
+                  Create & Open Builder
+                </>
               )}
             </Button>
           </DialogFooter>

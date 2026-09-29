@@ -7,15 +7,18 @@ import {
   text,
   pgEnum,
   integer,
+  index,
 } from "drizzle-orm/pg-core";
 import { usersTable } from "./user";
 
 export const formVisibilityEnum = pgEnum("form_visibility", ["public", "unlisted"]);
+export const formTypeEnum = pgEnum("form_type", ["form", "quiz"]);
 
 export const formsTable = pgTable("forms", {
   id: uuid("id").primaryKey().defaultRandom(),
-  title: varchar("title", { length: 55 }).notNull(),
-  description: varchar("description", { length: 55 }),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  type: formTypeEnum("type").default("form").notNull(),
   isActive: boolean("is_active").default(false),
   visibility: formVisibilityEnum("visibility").default("unlisted").notNull(),
   expiresAt: timestamp("expires_at"),
@@ -29,4 +32,8 @@ export const formsTable = pgTable("forms", {
 
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
-});
+}, (table) => ({
+  createdByIdx: index("forms_created_by_idx").on(table.createdBy),
+  typeIdx: index("forms_type_idx").on(table.type),
+  isActiveIdx: index("forms_is_active_idx").on(table.isActive),
+}));

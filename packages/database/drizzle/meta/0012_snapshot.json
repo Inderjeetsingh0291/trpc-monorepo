@@ -34,15 +34,9 @@
           "notNull": false,
           "default": false
         },
-        "email_verification_otp": {
-          "name": "email_verification_otp",
-          "type": "varchar(6)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "email_verification_expiry": {
-          "name": "email_verification_expiry",
-          "type": "timestamp",
+        "verification_token": {
+          "name": "verification_token",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -61,6 +55,18 @@
         "password": {
           "name": "password",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reset_password_token": {
+          "name": "reset_password_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reset_password_expires": {
+          "name": "reset_password_expires",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false
         },

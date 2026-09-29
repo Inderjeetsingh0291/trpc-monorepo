@@ -10,6 +10,7 @@ import {
   IconFileText,
   IconCheck,
   IconUsers,
+  IconTrophy,
 } from "@tabler/icons-react"
 import Link from "next/link"
 import { useGetDashboardStats } from "~/hooks/api/form"
@@ -136,13 +137,25 @@ export default function Page() {
               Welcome back — here&apos;s what&apos;s happening with your forms.
             </p>
           </div>
-          <Link
-            href="/dashboard/forms?create=true"
-            className="inline-flex items-center gap-2 rounded-xl bg-[oklch(0.62_0.19_48)] px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-[oklch(0.55_0.16_48)] hover:shadow-lg hover:-translate-y-0.5 self-start sm:self-auto"
-          >
-            <IconPlus className="size-4" />
-            New Form
-          </Link>
+          <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+            <Link
+              href="/dashboard/forms?createForm=true"
+              className="inline-flex items-center gap-2 rounded-xl bg-[oklch(0.5_0.14_145)] px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-[oklch(0.45_0.13_145)] hover:shadow-lg hover:-translate-y-0.5"
+            >
+              <IconPlus className="size-4" />
+              New Form
+            </Link>
+            <Link
+              href="/dashboard/quizzes?createQuiz=true"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5"
+              style={{
+                background: "linear-gradient(135deg, oklch(0.62 0.19 48), oklch(0.7 0.2 60))",
+              }}
+            >
+              <IconTrophy className="size-4 text-amber-200" />
+              New Quiz
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -161,34 +174,34 @@ export default function Page() {
             <QuickAction
               href="/dashboard/forms"
               icon={IconForms}
-              label="View All Forms"
-              desc="Manage your form collection"
-              accent="oklch(0.62 0.19 48)"
-              gradient="from-[oklch(0.62_0.19_48)] to-[oklch(0.7_0.2_60)]"
-            />
-            <QuickAction
-              href="/dashboard/forms"
-              icon={IconPlus}
-              label="Create New Form"
-              desc="Build from scratch"
+              label="My Forms"
+              desc="Manage standard forms"
               accent="oklch(0.5 0.14 145)"
               gradient="from-[oklch(0.5_0.14_145)] to-[oklch(0.6_0.14_160)]"
             />
             <QuickAction
-              href="/dashboard/public-forms"
-              icon={IconUsers}
-              label="Public Gallery"
-              desc="Browse community forms"
-              accent="oklch(0.45 0.14 260)"
-              gradient="from-[oklch(0.45_0.14_260)] to-[oklch(0.55_0.16_280)]"
+              href="/dashboard/quizzes"
+              icon={IconTrophy}
+              label="My Quizzes"
+              desc="Interactive challenges & rankings"
+              accent="oklch(0.62 0.19 48)"
+              gradient="from-[oklch(0.62_0.19_48)] to-[oklch(0.7_0.2_60)]"
             />
             <QuickAction
-              href="/docs"
-              icon={IconFileText}
-              label="API Documentation"
-              desc="Integrate via REST API"
-              accent="oklch(0.65 0.18 25)"
-              gradient="from-[oklch(0.65_0.18_25)] to-[oklch(0.7_0.16_40)]"
+              href="/dashboard/forms?createForm=true"
+              icon={IconPlus}
+              label="Create New Form"
+              desc="Build custom form from scratch"
+              accent="oklch(0.5 0.14 145)"
+              gradient="from-[oklch(0.5_0.14_145)] to-[oklch(0.6_0.14_160)]"
+            />
+            <QuickAction
+              href="/dashboard/quizzes?createQuiz=true"
+              icon={IconPlus}
+              label="Create New Quiz"
+              desc="Timed quiz with leaderboard"
+              accent="oklch(0.62 0.19 48)"
+              gradient="from-[oklch(0.62_0.19_48)] to-[oklch(0.7_0.2_60)]"
             />
           </div>
         </div>
