@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   ArrowLeftIcon,
   EyeIcon,
@@ -13,6 +14,8 @@ import {
   BarChart3Icon,
   Edit2Icon,
   SparklesIcon,
+  Trash2Icon,
+  AlertTriangleIcon,
 } from "lucide-react"
 import { toast } from "sonner"
 import { QRCodeSVG } from "qrcode.react"
@@ -25,6 +28,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog"
@@ -32,6 +36,7 @@ import {
   usePublishQuiz,
   useUnpublishQuiz,
   useUpdateQuiz,
+  useDeleteQuiz,
 } from "~/hooks/api/quiz"
 
 interface QuizHeaderProps {
@@ -52,17 +57,31 @@ interface QuizHeaderProps {
 }
 
 export function QuizHeader({ quiz, onRefetch }: QuizHeaderProps) {
+  const router = useRouter()
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [title, setTitle] = useState(quiz.title)
   const [description, setDescription] = useState(quiz.description ?? "")
   const [shareOpen, setShareOpen] = useState(false)
+  const [deleteQuizOpen, setDeleteQuizOpen] = useState(false)
   const [copied, setCopied] = useState(false)
 
   const { publishQuizAsync, isPending: isPublishing } = usePublishQuiz()
   const { unpublishQuizAsync, isPending: isUnpublishing } = useUnpublishQuiz()
   const { updateQuizAsync, isPending: isUpdating } = useUpdateQuiz()
+  const { deleteQuizAsync, isPending: isDeletingQuiz } = useDeleteQuiz()
 
-  const isPending = isPublishing || isUnpublishing || isUpdating
+  const handleDeleteQuiz = async () => {
+    try {
+      await deleteQuizAsync({ formId: quiz.id })
+      toast.success("Quiz deleted successfully.")
+      setDeleteQuizOpen(false)
+      router.push("/dashboard/quizzes")
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to delete quiz.")
+    }
+  }
+
+  const isPending = isPublishing || isUnpublishing || isUpdating || isDeletingQuiz
 
   const handleSaveDetails = async () => {
     if (!title.trim()) {
@@ -257,6 +276,16 @@ export function QuizHeader({ quiz, onRefetch }: QuizHeaderProps) {
           </Button>
 
           <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setDeleteQuizOpen(true)}
+            className="rounded-xl shadow-xs gap-1.5 text-rose-600 border-rose-200 dark:border-rose-900/50 hover:bg-rose-500/10 hover:text-rose-600"
+          >
+            <Trash2Icon className="size-4" />
+            Delete
+          </Button>
+
+          <Button
             size="sm"
             onClick={handleTogglePublish}
             disabled={isPending}
@@ -321,6 +350,50 @@ export function QuizHeader({ quiz, onRefetch }: QuizHeaderProps) {
               <p className="text-xs text-muted-foreground mt-3">Scan QR code to take quiz on mobile</p>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Quiz Dialog */}
+      <Dialog
+        open={deleteQuizOpen}
+        onOpenChange={(open) => {
+          if (!open && !isDeletingQuiz) setDeleteQuizOpen(false)
+        }}
+      >
+        <DialogContent className="rounded-2xl sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2 text-rose-600">
+              <AlertTriangleIcon className="size-4" />
+              Delete Entire Quiz
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+              Are you sure you want to delete &ldquo;<strong className="text-foreground">{quiz.title}</strong>&rdquo;?
+              This will permanently delete the quiz, all questions, options, settings, and all participant submissions. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="mt-3 flex items-center gap-2 sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isDeletingQuiz}
+              onClick={() => setDeleteQuizOpen(false)}
+              className="rounded-xl text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={isDeletingQuiz}
+              onClick={handleDeleteQuiz}
+              className="rounded-xl text-xs font-semibold"
+            >
+              {isDeletingQuiz ? "Deleting Quiz..." : "Delete Quiz"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

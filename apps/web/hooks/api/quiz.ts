@@ -329,6 +329,45 @@ export const useGetResult = (attemptId: string) => {
     return { result: data?.result ?? null, error, isLoading, isError, isSuccess, refetch }
 }
 
+export const useDeleteAttempt = () => {
+    const utils = trpc.useUtils()
+
+    const {
+        mutateAsync: deleteAttemptAsync,
+        mutate: deleteAttempt,
+        error,
+        isPending,
+        isError,
+        isSuccess,
+    } = trpc.quiz.deleteAttempt.useMutation({
+        onSuccess: async () => {
+            await utils.quiz.invalidate()
+        },
+    })
+
+    return { deleteAttempt, deleteAttemptAsync, error, isPending, isError, isSuccess }
+}
+
+export const useUpdateAttempt = () => {
+    const utils = trpc.useUtils()
+
+    const {
+        mutateAsync: updateAttemptAsync,
+        mutate: updateAttempt,
+        error,
+        isPending,
+        isError,
+        isSuccess,
+    } = trpc.quiz.updateAttempt.useMutation({
+        onSuccess: async () => {
+            await utils.quiz.invalidate()
+        },
+    })
+
+    return { updateAttempt, updateAttemptAsync, error, isPending, isError, isSuccess }
+}
+
+
 // ============================
 // Leaderboard Hook
 // ============================

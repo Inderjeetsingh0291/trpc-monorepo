@@ -57,3 +57,26 @@ export const getResultInput = z.object({
 })
 
 export type GetResultInputType = z.infer<typeof getResultInput>
+
+// --- Delete Attempt (Host only) ---
+
+export const deleteAttemptInput = z.object({
+    attemptId: z.string().uuid().describe("UUID of the attempt to delete"),
+    userId: z.string().uuid().describe("UUID of the host/creator"),
+})
+
+export type DeleteAttemptInputType = z.infer<typeof deleteAttemptInput>
+
+// --- Update Attempt (Host only) ---
+
+export const updateAttemptInput = z.object({
+    attemptId: z.string().uuid().describe("UUID of the attempt to update"),
+    userId: z.string().uuid().describe("UUID of the host/creator"),
+    participantName: z.string().min(1).max(100).optional(),
+    participantEmail: z.string().email().max(255).optional().nullable(),
+    score: z.number().int().min(0).optional(),
+    passed: z.boolean().optional(),
+})
+
+export type UpdateAttemptInputType = z.infer<typeof updateAttemptInput>
+

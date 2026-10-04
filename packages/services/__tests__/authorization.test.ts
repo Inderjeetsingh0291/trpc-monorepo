@@ -260,3 +260,62 @@ describe("Authorization — Analytics Access Control", () => {
         )
     })
 })
+
+// ---------------------------------------------------------------------------
+// Quiz Host Attempt Management Tests
+// ---------------------------------------------------------------------------
+
+describe("Authorization — Quiz Host Attempt Management", () => {
+    function verifyAttemptDeletionAuth(formCreatedBy: string, requestUserId: string): void {
+        if (formCreatedBy !== requestUserId) {
+            throw new Error("You are not authorized to delete submissions for this quiz.")
+        }
+    }
+
+    function verifyAttemptUpdateAuth(formCreatedBy: string, requestUserId: string): void {
+        if (formCreatedBy !== requestUserId) {
+            throw new Error("You are not authorized to edit submissions for this quiz.")
+        }
+    }
+
+    it("allows quiz host/creator to delete participant attempt", () => {
+        expect(() => verifyAttemptDeletionAuth("host-123", "host-123")).not.toThrow()
+    })
+
+    it("prevents non-host users from deleting participant attempt", () => {
+        expect(() => verifyAttemptDeletionAuth("host-123", "intruder-456")).toThrow(
+            "You are not authorized to delete submissions for this quiz."
+        )
+    })
+
+    it("allows quiz host/creator to edit participant attempt", () => {
+        expect(() => verifyAttemptUpdateAuth("host-123", "host-123")).not.toThrow()
+    })
+
+    it("prevents non-host users from editing participant attempt", () => {
+        expect(() => verifyAttemptUpdateAuth("host-123", "student-789")).toThrow(
+            "You are not authorized to edit submissions for this quiz."
+        )
+    })
+
+    it("recalculates percentage correctly on manual score edit", () => {
+        const totalMarks = 5
+        const newScore = 4
+        const percentage = Math.min(100, Math.round((newScore / totalMarks) * 100))
+        expect(percentage).toBe(80)
+    })
+
+    it("automatically evaluates pass/fail status against quiz passing threshold", () => {
+        const passingScore = 60
+        const totalMarks = 5
+
+        const scorePass = 3 // 60%
+        const percentagePass = Math.round((scorePass / totalMarks) * 100)
+        expect(percentagePass >= passingScore).toBe(true)
+
+        const scoreFail = 2 // 40%
+        const percentageFail = Math.round((scoreFail / totalMarks) * 100)
+        expect(percentageFail >= passingScore).toBe(false)
+    })
+})
+

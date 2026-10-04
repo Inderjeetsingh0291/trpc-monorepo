@@ -47,6 +47,9 @@ import {
     getResultInputModel, getResultOutputModel,
     // Previous Attempts by Email
     getPreviousAttemptsInputModel, getPreviousAttemptsOutputModel,
+    // Delete & Update Attempts (Host only)
+    deleteAttemptInputModel, deleteAttemptOutputModel,
+    updateAttemptInputModel, updateAttemptOutputModel,
     // Leaderboard
     getLeaderboardInputModel, getLeaderboardOutputModel,
     // Analytics
@@ -233,6 +236,19 @@ export const quizRouter = router({
     }).input(getPreviousAttemptsInputModel).output(getPreviousAttemptsOutputModel).query(async ({ input }) => {
         return await quizAttemptService.getPreviousAttempts(input);
     }),
+
+    deleteAttempt: authenticationPocedure.meta({
+        openapi: { method: "DELETE", path: getPath("/attempt/delete"), tags: ["Quiz Attempts"], protect: true },
+    }).input(deleteAttemptInputModel).output(deleteAttemptOutputModel).mutation(async ({ input, ctx }) => {
+        return await quizAttemptService.deleteAttempt({ ...input, userId: ctx.user.id });
+    }),
+
+    updateAttempt: authenticationPocedure.meta({
+        openapi: { method: "POST", path: getPath("/attempt/update"), tags: ["Quiz Attempts"], protect: true },
+    }).input(updateAttemptInputModel).output(updateAttemptOutputModel).mutation(async ({ input, ctx }) => {
+        return await quizAttemptService.updateAttempt({ ...input, userId: ctx.user.id });
+    }),
+
 
 
     getLeaderboard: publicProcedure.meta({

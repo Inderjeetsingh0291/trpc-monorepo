@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   ArrowLeftIcon,
   DownloadIcon,
@@ -21,6 +22,8 @@ import {
   EyeOffIcon,
   SearchIcon,
   ExternalLinkIcon,
+  PencilIcon,
+  Trash2Icon,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -43,6 +46,15 @@ import { Button } from "~/components/ui/button"
 import { Badge } from "~/components/ui/badge"
 import { Skeleton } from "~/components/ui/skeleton"
 import { Input } from "~/components/ui/input"
+import { Label } from "~/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog"
 import {
   Table,
   TableBody,
@@ -58,6 +70,9 @@ import {
   useExportCSV,
   useGetQuizById,
   usePublishResults,
+  useDeleteAttempt,
+  useUpdateAttempt,
+  useDeleteQuiz,
 } from "~/hooks/api/quiz"
 
 interface QuizAnalyticsClientProps {
@@ -71,12 +86,76 @@ export function QuizAnalyticsClient({ formId }: QuizAnalyticsClientProps) {
   const { exportCSV } = useExportCSV()
   const { publishResultsAsync, isPending: isPublishing } = usePublishResults()
 
+  const router = useRouter()
+  const { deleteAttemptAsync, isPending: isDeletingAttempt } = useDeleteAttempt()
+  const { updateAttemptAsync, isPending: isUpdatingAttempt } = useUpdateAttempt()
+  const { deleteQuizAsync, isPending: isDeletingQuiz } = useDeleteQuiz()
+
   const [isExporting, setIsExporting] = useState(false)
   const [isTogglingPublish, setIsTogglingPublish] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | "passed" | "failed">("all")
 
+  // State for deleting attempt
+  const [deleteAttemptTarget, setDeleteAttemptTarget] = useState<{ id: string; name: string } | null>(null)
+
+  // State for editing attempt
+  const [editAttemptTarget, setEditAttemptTarget] = useState<{
+    id: string
+    name: string
+    email: string
+    score: number
+    totalMarks: number
+    passed: boolean
+  } | null>(null)
+
+  // State for deleting quiz
+  const [deleteQuizOpen, setDeleteQuizOpen] = useState(false)
+
   const isResultsPublished = analytics?.resultsPublished ?? true
+
+  const handleDeleteAttempt = async () => {
+    if (!deleteAttemptTarget) return
+    try {
+      await deleteAttemptAsync({ attemptId: deleteAttemptTarget.id })
+      toast.success(`Submission for "${deleteAttemptTarget.name}" deleted successfully.`)
+      setDeleteAttemptTarget(null)
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to delete submission.")
+    }
+  }
+
+  const handleSaveEditAttempt = async () => {
+    if (!editAttemptTarget) return
+    if (!editAttemptTarget.name.trim()) {
+      toast.error("Participant name cannot be empty.")
+      return
+    }
+    try {
+      await updateAttemptAsync({
+        attemptId: editAttemptTarget.id,
+        participantName: editAttemptTarget.name.trim(),
+        participantEmail: editAttemptTarget.email.trim() || null,
+        score: Math.max(0, Math.min(editAttemptTarget.totalMarks, Number(editAttemptTarget.score))),
+        passed: editAttemptTarget.passed,
+      })
+      toast.success("Submission updated successfully.")
+      setEditAttemptTarget(null)
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to update submission.")
+    }
+  }
+
+  const handleDeleteQuiz = async () => {
+    try {
+      await deleteQuizAsync({ formId })
+      toast.success("Quiz deleted successfully.")
+      setDeleteQuizOpen(false)
+      router.push("/dashboard/quizzes")
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to delete quiz.")
+    }
+  }
 
   const handleTogglePublish = async () => {
     try {
@@ -219,17 +298,41 @@ export function QuizAnalyticsClient({ formId }: QuizAnalyticsClientProps) {
           </div>
         </div>
 
-        <Button
-          onClick={handleExport}
-          disabled={isExporting || totalAttempts === 0}
-          className="rounded-xl font-semibold text-white shadow-xs gap-1.5 self-start sm:self-auto"
-          style={{
-            background: "linear-gradient(135deg, oklch(0.62 0.19 48), oklch(0.7 0.2 60))",
-          }}
-        >
-          <DownloadIcon className="size-4" />
-          {isExporting ? "Exporting..." : "Export CSV"}
-        </Button>
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="rounded-xl shadow-xs gap-1.5 h-9"
+          >
+            <Link href={`/dashboard/forms/${formId}/quiz-builder`}>
+              <PencilIcon className="size-3.5" />
+              <span>Edit Quiz</span>
+            </Link>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setDeleteQuizOpen(true)}
+            className="rounded-xl shadow-xs gap-1.5 h-9 text-rose-600 border-rose-200 dark:border-rose-900/50 hover:bg-rose-500/10 hover:text-rose-600"
+          >
+            <Trash2Icon className="size-3.5" />
+            <span>Delete Quiz</span>
+          </Button>
+
+          <Button
+            onClick={handleExport}
+            disabled={isExporting || totalAttempts === 0}
+            className="rounded-xl font-semibold text-white shadow-xs gap-1.5 h-9"
+            style={{
+              background: "linear-gradient(135deg, oklch(0.62 0.19 48), oklch(0.7 0.2 60))",
+            }}
+          >
+            <DownloadIcon className="size-4" />
+            {isExporting ? "Exporting..." : "Export CSV"}
+          </Button>
+        </div>
       </div>
 
       {/* Result Publication Status Banner */}
@@ -702,7 +805,7 @@ export function QuizAnalyticsClient({ formId }: QuizAnalyticsClientProps) {
                         <TableHead className="text-xs font-semibold">Percentage</TableHead>
                         <TableHead className="text-xs font-semibold">Time Taken</TableHead>
                         <TableHead className="text-xs font-semibold">Submitted At</TableHead>
-                        <TableHead className="text-xs font-semibold text-right">Action</TableHead>
+                        <TableHead className="text-xs font-semibold text-right pr-4 min-w-[200px]">Action</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -773,22 +876,61 @@ export function QuizAnalyticsClient({ formId }: QuizAnalyticsClientProps) {
                                 : "In Progress"}
                             </TableCell>
 
-                            <TableCell className="py-3 text-right">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                asChild
-                                className="h-7 text-xs rounded-lg gap-1 hover:text-[oklch(0.62_0.19_48)]"
-                              >
-                                <Link
-                                  href={`/quiz/${formId}/result/${att.id}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                            <TableCell className="py-3 text-right pr-4">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  asChild
+                                  className="h-7 px-2 text-xs rounded-lg gap-1 hover:text-[oklch(0.62_0.19_48)]"
+                                  title="View Result"
                                 >
-                                  <span>View</span>
-                                  <ExternalLinkIcon className="size-3" />
-                                </Link>
-                              </Button>
+                                  <Link
+                                    href={`/quiz/${formId}/result/${att.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <span>View</span>
+                                    <ExternalLinkIcon className="size-3" />
+                                  </Link>
+                                </Button>
+
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    setEditAttemptTarget({
+                                      id: att.id,
+                                      name: att.participantName || "",
+                                      email: att.participantEmail || "",
+                                      score: att.score ?? 0,
+                                      totalMarks: att.totalMarks ?? 0,
+                                      passed: att.passed === true,
+                                    })
+                                  }
+                                  className="h-7 px-2 text-xs rounded-lg gap-1 text-muted-foreground hover:text-foreground hover:bg-muted"
+                                  title="Edit Submission"
+                                >
+                                  <PencilIcon className="size-3" />
+                                  <span>Edit</span>
+                                </Button>
+
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    setDeleteAttemptTarget({
+                                      id: att.id,
+                                      name: att.participantName || "Anonymous Participant",
+                                    })
+                                  }
+                                  className="h-7 px-2 text-xs rounded-lg gap-1 text-rose-600 hover:text-rose-700 hover:bg-rose-500/10"
+                                  title="Delete Submission"
+                                >
+                                  <Trash2Icon className="size-3" />
+                                  <span>Delete</span>
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         )
@@ -799,8 +941,237 @@ export function QuizAnalyticsClient({ formId }: QuizAnalyticsClientProps) {
               )}
             </CardContent>
           </Card>
+
+          {/* Edit Submission Dialog */}
+          <Dialog
+            open={!!editAttemptTarget}
+            onOpenChange={(open) => {
+              if (!open && !isUpdatingAttempt) setEditAttemptTarget(null)
+            }}
+          >
+            <DialogContent className="rounded-2xl sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-base font-bold flex items-center gap-2">
+                  <PencilIcon className="size-4 text-[oklch(0.62_0.19_48)]" />
+                  Edit Participant Submission
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Update participant name, email, adjust awarded score, or modify pass/fail outcome.
+                </DialogDescription>
+              </DialogHeader>
+
+              {editAttemptTarget && (() => {
+                const currentScore = Number(editAttemptTarget.score) || 0
+                const total = editAttemptTarget.totalMarks || 1
+                const percentage = Math.min(100, Math.round((currentScore / total) * 100))
+
+                return (
+                  <div className="flex flex-col gap-4 py-2">
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-xs font-semibold">Participant Name</Label>
+                      <Input
+                        value={editAttemptTarget.name}
+                        onChange={(e) =>
+                          setEditAttemptTarget({ ...editAttemptTarget, name: e.target.value })
+                        }
+                        placeholder="Participant name..."
+                        className="h-9 rounded-xl text-xs"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-xs font-semibold">Participant Email (Optional)</Label>
+                      <Input
+                        type="email"
+                        value={editAttemptTarget.email}
+                        onChange={(e) =>
+                          setEditAttemptTarget({ ...editAttemptTarget, email: e.target.value })
+                        }
+                        placeholder="email@example.com"
+                        className="h-9 rounded-xl text-xs"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-semibold">Score (pts)</Label>
+                          <span className="text-[11px] text-muted-foreground font-medium">
+                            Max: {editAttemptTarget.totalMarks}
+                          </span>
+                        </div>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={editAttemptTarget.totalMarks}
+                          value={editAttemptTarget.score}
+                          onChange={(e) => {
+                            const val = Math.max(0, Math.min(editAttemptTarget.totalMarks, Number(e.target.value) || 0))
+                            setEditAttemptTarget({ ...editAttemptTarget, score: val })
+                          }}
+                          className="h-9 rounded-xl text-xs font-semibold"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <Label className="text-xs font-semibold">Calculated</Label>
+                        <div className="h-9 flex items-center px-3 rounded-xl bg-muted/60 border border-border/60 text-xs font-bold text-foreground">
+                          {percentage}%
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Label className="text-xs font-semibold">Result Status</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditAttemptTarget({ ...editAttemptTarget, passed: true })}
+                          className={`h-9 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border transition-all ${
+                            editAttemptTarget.passed
+                              ? "border-emerald-500 bg-emerald-500/15 text-emerald-600 shadow-xs"
+                              : "border-border/70 bg-background text-muted-foreground hover:bg-muted/40"
+                          }`}
+                        >
+                          <CheckCircle2Icon className="size-3.5" />
+                          Passed
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditAttemptTarget({ ...editAttemptTarget, passed: false })}
+                          className={`h-9 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border transition-all ${
+                            !editAttemptTarget.passed
+                              ? "border-rose-500 bg-rose-500/15 text-rose-600 shadow-xs"
+                              : "border-border/70 bg-background text-muted-foreground hover:bg-muted/40"
+                          }`}
+                        >
+                          <XCircleIcon className="size-3.5" />
+                          Failed
+                        </button>
+                      </div>
+                    </div>
+
+                    <DialogFooter className="mt-3 flex items-center gap-2 sm:justify-end">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isUpdatingAttempt}
+                        onClick={() => setEditAttemptTarget(null)}
+                        className="rounded-xl text-xs"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={isUpdatingAttempt}
+                        onClick={handleSaveEditAttempt}
+                        className="rounded-xl text-xs font-semibold text-white"
+                        style={{
+                          background: "linear-gradient(135deg, oklch(0.62 0.19 48), oklch(0.7 0.2 60))",
+                        }}
+                      >
+                        {isUpdatingAttempt ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </DialogFooter>
+                  </div>
+                )
+              })()}
+            </DialogContent>
+          </Dialog>
+
+          {/* Delete Submission Dialog */}
+          <Dialog
+            open={!!deleteAttemptTarget}
+            onOpenChange={(open) => {
+              if (!open && !isDeletingAttempt) setDeleteAttemptTarget(null)
+            }}
+          >
+            <DialogContent className="rounded-2xl sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-base font-bold flex items-center gap-2 text-rose-600">
+                  <Trash2Icon className="size-4" />
+                  Delete Participant Submission
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+                  Are you sure you want to permanently delete the submission for{" "}
+                  <strong className="text-foreground">{deleteAttemptTarget?.name}</strong>?
+                  This will remove all associated scores, answers, and recalculate quiz analytics. This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+
+              <DialogFooter className="mt-3 flex items-center gap-2 sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isDeletingAttempt}
+                  onClick={() => setDeleteAttemptTarget(null)}
+                  className="rounded-xl text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  disabled={isDeletingAttempt}
+                  onClick={handleDeleteAttempt}
+                  className="rounded-xl text-xs font-semibold"
+                >
+                  {isDeletingAttempt ? "Deleting..." : "Delete Submission"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Delete Quiz Dialog */}
+          <Dialog
+            open={deleteQuizOpen}
+            onOpenChange={(open) => {
+              if (!open && !isDeletingQuiz) setDeleteQuizOpen(false)
+            }}
+          >
+            <DialogContent className="rounded-2xl sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-base font-bold flex items-center gap-2 text-rose-600">
+                  <AlertTriangleIcon className="size-4" />
+                  Delete Entire Quiz
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+                  Are you sure you want to delete &ldquo;<strong className="text-foreground">{quiz?.title ?? "this quiz"}</strong>&rdquo;?
+                  This will permanently delete the quiz, all questions, options, settings, and all participant submissions. This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+
+              <DialogFooter className="mt-3 flex items-center gap-2 sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isDeletingQuiz}
+                  onClick={() => setDeleteQuizOpen(false)}
+                  className="rounded-xl text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  disabled={isDeletingQuiz}
+                  onClick={handleDeleteQuiz}
+                  className="rounded-xl text-xs font-semibold"
+                >
+                  {isDeletingQuiz ? "Deleting Quiz..." : "Delete Quiz"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </>
       )}
     </div>
   )
 }
+

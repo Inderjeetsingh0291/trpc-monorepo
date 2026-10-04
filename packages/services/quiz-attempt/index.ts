@@ -12,6 +12,8 @@ import {
     type GetAttemptInputType, getAttemptInput,
     type GetResultInputType, getResultInput,
     type GetPreviousAttemptsInputType, getPreviousAttemptsInput,
+    type DeleteAttemptInputType, deleteAttemptInput,
+    type UpdateAttemptInputType, updateAttemptInput,
 } from "./model"
 
 class QuizAttemptService {
@@ -753,6 +755,137 @@ class QuizAttemptService {
             resultsPublished,
             totalAttempts: sanitized.length,
         }
+    }
+
+    /**
+     * Delete an attempt (host who made the quiz only).
+     * Cascades to delete all quizAnswers for this attempt.
+     */
+    public async deleteAttempt(payload: DeleteAttemptInputType) {
+        const { attemptId, userId } = await deleteAttemptInput.parseAsync(payload)
+
+        // 1. Get attempt
+        const [attempt] = await db.select({
+            id: quizAttemptsTable.id,
+            formId: quizAttemptsTable.formId,
+        })
+        .from(quizAttemptsTable)
+        .where(eq(quizAttemptsTable.id, attemptId))
+
+        if (!attempt) throw new Error("Attempt not found.")
+
+        // 2. Verify quiz owner (host who created the quiz)
+        const [form] = await db.select({
+            id: formsTable.id,
+            createdBy: formsTable.createdBy,
+        })
+        .from(formsTable)
+        .where(eq(formsTable.id, attempt.formId))
+
+        if (!form) throw new Error("Quiz not found.")
+        if (form.createdBy !== userId) {
+            throw new Error("You are not authorized to delete submissions for this quiz.")
+        }
+
+        // 3. Delete attempt (quizAnswers cascade deletes automatically)
+        const [deleted] = await db.delete(quizAttemptsTable)
+            .where(eq(quizAttemptsTable.id, attemptId))
+            .returning({ id: quizAttemptsTable.id })
+
+        if (!deleted) throw new Error("Failed to delete attempt.")
+
+        return { success: true, deletedAttemptId: deleted.id }
+    }
+
+    /**
+     * Update an attempt (host who made the quiz only).
+     * Allows adjusting participant details, score/marks, or pass status.
+     */
+    public async updateAttempt(payload: UpdateAttemptInputType) {
+        const { attemptId, userId, participantName, participantEmail, score, passed } =
+            await updateAttemptInput.parseAsync(payload)
+
+        // 1. Get attempt
+        const [attempt] = await db.select({
+            id: quizAttemptsTable.id,
+            formId: quizAttemptsTable.formId,
+            score: quizAttemptsTable.score,
+            totalMarks: quizAttemptsTable.totalMarks,
+            percentage: quizAttemptsTable.percentage,
+            passed: quizAttemptsTable.passed,
+            participantName: quizAttemptsTable.participantName,
+            participantEmail: quizAttemptsTable.participantEmail,
+            status: quizAttemptsTable.status,
+        })
+        .from(quizAttemptsTable)
+        .where(eq(quizAttemptsTable.id, attemptId))
+
+        if (!attempt) throw new Error("Attempt not found.")
+
+        // 2. Verify quiz owner (host who created the quiz)
+        const [form] = await db.select({
+            id: formsTable.id,
+            createdBy: formsTable.createdBy,
+        })
+        .from(formsTable)
+        .where(eq(formsTable.id, attempt.formId))
+
+        if (!form) throw new Error("Quiz not found.")
+        if (form.createdBy !== userId) {
+            throw new Error("You are not authorized to edit submissions for this quiz.")
+        }
+
+        // 3. Compute new values
+        const updateValues: Partial<typeof quizAttemptsTable.$inferInsert> = {}
+
+        if (participantName !== undefined) {
+            updateValues.participantName = participantName.trim()
+        }
+        if (participantEmail !== undefined) {
+            updateValues.participantEmail = participantEmail ? participantEmail.toLowerCase().trim() : null
+        }
+
+        let newScore = attempt.score
+        if (score !== undefined) {
+            newScore = score
+            const newPercentage = attempt.totalMarks > 0
+                ? Math.min(100, Math.round((newScore / attempt.totalMarks) * 100))
+                : 0
+
+            updateValues.score = newScore
+            updateValues.percentage = newPercentage
+
+            // If passed not explicitly provided, update passed based on quiz passingScore
+            if (passed === undefined) {
+                const [settings] = await db.select({ passingScore: quizSettingsTable.passingScore })
+                    .from(quizSettingsTable)
+                    .where(eq(quizSettingsTable.formId, attempt.formId))
+                const passingScore = settings?.passingScore ?? 50
+                updateValues.passed = newPercentage >= passingScore
+            }
+        }
+
+        if (passed !== undefined) {
+            updateValues.passed = passed
+        }
+
+        const [updated] = await db.update(quizAttemptsTable)
+            .set(updateValues)
+            .where(eq(quizAttemptsTable.id, attemptId))
+            .returning({
+                id: quizAttemptsTable.id,
+                participantName: quizAttemptsTable.participantName,
+                participantEmail: quizAttemptsTable.participantEmail,
+                score: quizAttemptsTable.score,
+                totalMarks: quizAttemptsTable.totalMarks,
+                percentage: quizAttemptsTable.percentage,
+                passed: quizAttemptsTable.passed,
+                status: quizAttemptsTable.status,
+            })
+
+        if (!updated) throw new Error("Failed to update attempt.")
+
+        return { success: true, attempt: updated }
     }
 }
 

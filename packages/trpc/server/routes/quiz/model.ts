@@ -440,6 +440,42 @@ export const getPreviousAttemptsOutputModel = z.object({
     totalAttempts: z.number().int(),
 })
 
+// ==============================
+// Delete / Update Attempt Models (Host only)
+// ==============================
+
+export const deleteAttemptInputModel = z.object({
+    attemptId: z.string().uuid(),
+})
+
+export const deleteAttemptOutputModel = z.object({
+    success: z.boolean(),
+    deletedAttemptId: z.string(),
+})
+
+export const updateAttemptInputModel = z.object({
+    attemptId: z.string().uuid(),
+    participantName: z.string().min(1).max(100).optional(),
+    participantEmail: z.string().email().max(255).optional().nullable(),
+    score: z.number().int().min(0).optional(),
+    passed: z.boolean().optional(),
+})
+
+export const updateAttemptOutputModel = z.object({
+    success: z.boolean(),
+    attempt: z.object({
+        id: z.string(),
+        participantName: z.string(),
+        participantEmail: z.string().nullable(),
+        score: z.number().int(),
+        totalMarks: z.number().int(),
+        percentage: z.number().int(),
+        passed: z.boolean(),
+        status: z.enum(attemptStatusValues),
+    }),
+})
+
+
 
 export const getLeaderboardInputModel = z.object({
     formId: z.string().uuid(),
